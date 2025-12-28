@@ -1,0 +1,182 @@
+---
+/**
+ * HeroSlider.astro - Versión Tailwind Pura
+ * Sin CSS externo, solo clases de Tailwind
+ */
+
+interface Props {
+    title?: string;
+    highlightText?: string;
+    subtitle?: string;
+    description?: string;
+    ctaText?: string;
+    ctaUrl?: string;
+    statsNumber?: number;
+    statsLabel?: string;
+    images?: string[];
+}
+
+const {
+    title = "Encuentra tu lugar",
+    highlightText = "en el espacio",
+    subtitle = "que mereces",
+    description = "Me apasiona estar a la vanguardia y conectar con tus proyectos de vida. Con empatía y dedicación, busco el lugar perfecto que se ajuste a tus gustos, haciendo de tus necesidades el motor de mi trabajo.",
+    ctaText = "Buscar Propiedades",
+    ctaUrl = "/propiedades",
+    statsNumber = 37,
+    statsLabel = "PROYECTOS COMPLETADOS",
+    images = [
+        "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=80",
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80",
+        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80",
+    ]
+} = Astro.props;
+---
+
+<section class="min-h-screen bg-[#f9f5ed94] pt-24 pb-12 px-4 lg:px-8">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+       
+        <div class="lg:col-span-5 relative z-10">
+            <!-- Vector decorativo de fondo -->
+            <div 
+                class="hero-vector-bg bg-[url(/hero-vector.png)] absolute -top-16 -left-16 w-72 h-96 opacity-10 pointer-events-none bg-contain bg-no-repeat"
+            ></div>
+
+            <div class="relative">
+                <!-- Título -->
+                <h1 class="text-[3.0rem] md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-8 tracking-tight">
+                    {title} <br />
+                    <span class="text-primary italic">{highlightText}</span> <br />
+                    {subtitle}
+                </h1>
+
+                <!-- Stats Block -->
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-20 h-20 rounded-full bg-[#dbead5] flex items-center justify-center flex-shrink-0">
+                        <span class="text-3xl font-bold text-gray-900">{statsNumber}</span>
+                    </div>
+                    <div class="text-base font-semibold uppercase tracking-wide text-gray-600 leading-tight">
+                        <span set:html={statsLabel.replace(' ', '<br/>')} />
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <p class="text-gray-600 text-base lg:text-lg leading-relaxed mb-8 max-w-md">
+                    {description}
+                </p>
+
+                <!-- CTA Button -->
+                <a 
+                    href={ctaUrl} 
+                    class="group inline-flex items-center gap-3 bg-gray-900 text-white pl-6 pr-3 py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition-all duration-300 hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
+                >
+                    <span>{ctaText}</span>
+                    <span class="w-9 h-9 bg-primary rounded-full flex items-center justify-center transition-transform duration-300 group-hover:translate-x-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+      
+        <div class="lg:col-span-7">
+            <div class="relative w-full aspect-[4/3] lg:aspect-[5/4] rounded-[2.5rem] overflow-hidden shadow-2xl">
+                
+                <!-- Borde de progreso animado -->
+                <div class="absolute inset-0 rounded-[2.5rem] border-4 border-primary/70 z-20 pointer-events-none slider-border"></div>
+
+                <!-- Slides -->
+                {images.map((img, index) => (
+                    <div 
+                        class={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${index === 0 ? 'opacity-100' : 'opacity-0'}`}
+                        style={`background-image: url('${img}');`}
+                        data-slide={index}
+                    ></div>
+                ))}
+
+                <!-- Navigation Controls -->
+                <div class="absolute bottom-6 right-6 flex gap-3 z-30">
+                    <button 
+                        class="slider-prev w-12 h-12 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-gray-900 hover:bg-white hover:scale-110 transition-all duration-200 shadow-lg"
+                        aria-label="Anterior"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 18l-6-6 6-6"></path>
+                        </svg>
+                    </button>
+                    <button 
+                        class="slider-next w-12 h-12 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-gray-900 hover:bg-white hover:scale-110 transition-all duration-200 shadow-lg"
+                        aria-label="Siguiente"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18l6-6-6-6"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Solo animación del borde - lo mínimo necesario */
+    @keyframes borderProgress {
+        from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
+        to { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+    }
+    .slider-border {
+        animation: borderProgress 5s linear infinite;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const slides = document.querySelectorAll('[data-slide]');
+        const prevBtn = document.querySelector('.slider-prev');
+        const nextBtn = document.querySelector('.slider-next');
+        
+        if (!slides.length) return;
+        
+        let currentIndex = 0;
+        let autoplayInterval: ReturnType<typeof setInterval>;
+        const AUTOPLAY_DELAY = 5000;
+
+        function showSlide(index: number) {
+            slides.forEach((slide, i) => {
+                if (i === index) {
+                    slide.classList.remove('opacity-0');
+                    slide.classList.add('opacity-100');
+                } else {
+                    slide.classList.remove('opacity-100');
+                    slide.classList.add('opacity-0');
+                }
+            });
+        }
+
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % slides.length;
+            showSlide(currentIndex);
+        }
+
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+            showSlide(currentIndex);
+        }
+
+        function startAutoplay() {
+            stopAutoplay();
+            autoplayInterval = setInterval(nextSlide, AUTOPLAY_DELAY);
+        }
+
+        function stopAutoplay() {
+            if (autoplayInterval) clearInterval(autoplayInterval);
+        }
+
+        nextBtn?.addEventListener('click', () => { nextSlide(); startAutoplay(); });
+        prevBtn?.addEventListener('click', () => { prevSlide(); startAutoplay(); });
+
+        startAutoplay();
+    });
+</script>

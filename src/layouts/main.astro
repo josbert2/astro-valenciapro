@@ -1,16 +1,142 @@
 ---
 import '../styles/global.css';
-const { content } = Astro.props;
+
+import { SEO } from "astro-seo";
+
+// Props del layout
+interface Props {
+    title?: string;
+    description?: string;
+    image?: string;
+    noindex?: boolean;
+}
+
+const siteUrl = import.meta.env.SITE_URL || "https://valenciapro.cl";
+const appEnv = import.meta.env.APP_ENV || "development";
+
+const allowIndexing = appEnv === "production";
+const robotsContent = allowIndexing ? "index, follow" : "noindex, nofollow";
+
+const { 
+    title, 
+    description = "Encuentra tu propiedad ideal en Santiago, Chile. Casas, departamentos y oficinas en arriendo y venta con Valencia Propiedades.", 
+    image,
+    noindex = false
+} = Astro.props;
+
+const isIndexPage = Astro.url.pathname === "/";
+
+const SITE_NAME = "Valencia Propiedades";
+const DEFAULT_TITLE = "Valencia Propiedades | Corretaje Inmobiliario en Santiago";
+
+const pageTitle = isIndexPage ? DEFAULT_TITLE : title || DEFAULT_TITLE;
+const titleTemplate = isIndexPage ? "%s" : `%s | ${SITE_NAME}`;
+
+const ogImage = image || `${siteUrl}/og.png`;
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<title>{content.title}</title>
-	</head>
-	<body>
-		<slot />
-	</body>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        
+        <SEO
+            title={pageTitle}
+            titleDefault={DEFAULT_TITLE}
+            titleTemplate={titleTemplate}
+            description={description}
+            canonical={Astro.url.toString()}
+            noindex={noindex || !allowIndexing}
+            nofollow={noindex || !allowIndexing}
+            openGraph={{
+                basic: {
+                    title: pageTitle,
+                    type: "website",
+                    image: ogImage,
+                    url: Astro.url.toString(),
+                },
+                image: {
+                    alt: SITE_NAME,
+                    width: 1200,
+                    height: 630,
+                    type: "image/png",
+                },
+                optional: {
+                    description,
+                    siteName: SITE_NAME,
+                    locale: "es_CL",
+                },
+            }}
+            twitter={{
+                card: "summary_large_image",
+                site: "@valenciapropiedades",
+                creator: "@valenciapropiedades",
+                title: pageTitle,
+                description,
+                image: ogImage,
+                imageAlt: SITE_NAME,
+            }}
+            extend={{
+                meta: [
+                    { name: "author", content: "Valencia Propiedades" },
+                    {
+                        name: "keywords",
+                        content: "propiedades, inmobiliaria, corretaje, arriendo, venta, departamentos, casas, santiago, chile",
+                    },
+                    { name: "googlebot", content: robotsContent },
+                    { name: "theme-color", content: "#bfb37b" },
+                    { name: "msapplication-TileColor", content: "#bfb37b" },
+                ],
+                link: [
+                    {
+                        rel: "apple-touch-icon",
+                        sizes: "180x180",
+                        href: "/apple-touch-icon.png",
+                    },
+                    {
+                        rel: "icon",
+                        type: "image/png",
+                        sizes: "32x32",
+                        href: "/favicon-32x32.png",
+                    },
+                    {
+                        rel: "icon",
+                        type: "image/png",
+                        sizes: "16x16",
+                        href: "/favicon-16x16.png",
+                    },
+                    {
+                        rel: "icon",
+                        type: "image/x-icon",
+                        href: "/favicon.ico",
+                    },
+                    {
+                        rel: "icon",
+                        type: "image/png",
+                        sizes: "192x192",
+                        href: "/android-chrome-192x192.png",
+                    },
+                    {
+                        rel: "icon",
+                        type: "image/png",
+                        sizes: "512x512",
+                        href: "/android-chrome-512x512.png",
+                    },
+                    {
+                        rel: "manifest",
+                        href: "/site.webmanifest",
+                    },
+                ],
+            }}
+        />
+        <link rel="sitemap" href="/sitemap-index.xml" />
+        
+        <!-- Preload fonts for performance -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet" />
+    </head>
+    <body class="bg-white text-gray-900 antialiased">
+        <slot />
+    </body>
 </html>

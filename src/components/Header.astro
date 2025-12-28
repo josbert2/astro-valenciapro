@@ -1,0 +1,111 @@
+---
+interface MenuItem {
+    label: string;
+    uri: string;
+}
+
+interface Props {
+    menuItems?: MenuItem[];
+    logoUrl?: string;
+}
+
+const { 
+    menuItems = [
+        { label: 'Inicio', uri: '/' },
+        { label: 'Nosotros', uri: '/nosotros' },
+        { label: 'Alianzas', uri: '/alianza' },
+        { label: 'Propiedades', uri: '/propiedades' },
+        { label: 'Servicios', uri: '/servicios' },
+        { label: 'Contacto', uri: '/contacto' },
+    ],
+    logoUrl = '/header-removebg-preview (4).png'
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="header">
+    <div class="header-container flex">
+   
+        <a href="/" class="logo">
+            <img src={logoUrl} alt="Valencia Propiedades" />
+        </a>
+
+        <nav class="nav-desktop ml-10">
+            <ul class="nav-menu">
+                {menuItems.map((item) => (
+                    <li class={`nav-item ${currentPath === item.uri ? 'active' : ''}`}>
+                        <a class="text-xs" href={item.uri}>{item.label}</a>
+                    </li>
+                ))}
+            </ul>
+        </nav>
+
+
+        <div class="header-actions ml-auto">
+            <a href="/propiedades" class="btn-pill btn-search text-xs">
+                <span>Propiedades</span>
+                <span class="bg-white px-2 py-2 rounded-full text-black">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </span>
+            </a>
+            
+            <a href="/zona-clientes" class="btn-pill  border-primary border text-xs">
+                <span>Ingresar</span>
+                <span class="icon-circle bg-primary px-2 py-2 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"></path>
+                    </svg>
+                </span>
+            </a>
+
+            <!-- Mobile Menu Button -->
+            <button class="hamburger" aria-label="Abrir menú">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-menu-overlay" id="mobileMenu">
+    <div class="mobile-menu-content">
+        <button class="close-menu" aria-label="Cerrar menú">×</button>
+        <nav class="nav-mobile">
+            <ul>
+                {menuItems.map((item) => (
+                    <li>
+                        <a href={item.uri}>{item.label}</a>
+                    </li>
+                ))}
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+
+<script>
+    const hamburger = document.querySelector('.hamburger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const closeMenu = document.querySelector('.close-menu');
+
+    hamburger?.addEventListener('click', () => {
+        mobileMenu?.classList.add('active');
+    });
+
+    closeMenu?.addEventListener('click', () => {
+        mobileMenu?.classList.remove('active');
+    });
+
+    mobileMenu?.addEventListener('click', (e) => {
+        if (e.target === mobileMenu) {
+            mobileMenu.classList.remove('active');
+        }
+    });
+</script>

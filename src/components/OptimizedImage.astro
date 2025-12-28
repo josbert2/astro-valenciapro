@@ -1,0 +1,62 @@
+---
+/**
+ * OptimizedImage.astro
+ * Componente para imágenes remotas con optimización automática para SEO.
+ * Usa el servicio de optimización de Astro (sharp) para generar:
+ * - Formatos modernos (WebP, AVIF)
+ * - Tamaños responsivos
+ * - Lazy loading
+ * - Dimensiones explícitas (evita CLS)
+ */
+import { Image } from 'astro:assets';
+
+interface Props {
+    src: string;
+    alt: string;
+    width?: number;
+    height?: number;
+    class?: string;
+    loading?: 'lazy' | 'eager';
+    sizes?: string;
+    quality?: number;
+}
+
+const { 
+    src, 
+    alt, 
+    width = 800, 
+    height = 600, 
+    class: className = '', 
+    loading = 'lazy',
+    sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
+    quality = 80
+} = Astro.props;
+
+// Si no hay src, mostrar placeholder
+const placeholderUrl = `https://placehold.co/${width}x${height}/e5e7eb/9ca3af?text=Sin+imagen`;
+const imageUrl = src || placeholderUrl;
+---
+
+{src ? (
+    <Image 
+        src={imageUrl}
+        alt={alt}
+        width={width}
+        height={height}
+        class={className}
+        loading={loading}
+        decoding="async"
+        quality={quality}
+        format="webp"
+    />
+) : (
+    <img 
+        src={placeholderUrl}
+        alt={alt}
+        width={width}
+        height={height}
+        class={className}
+        loading={loading}
+        decoding="async"
+    />
+)}

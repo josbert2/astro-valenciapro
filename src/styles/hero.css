@@ -1,0 +1,267 @@
+.hero-premium {
+    background-color: #fdfbf7; /* Color crema suave de fondo (referencia) */
+    min-height: 85vh; /* Altura considerable */
+    position: relative;
+    overflow: hidden;
+    font-family: 'Lexend', sans-serif;
+    padding-top:125px; /* Espacio para header si es fijo */
+}
+
+.hero-container {
+    max-width: 1400px; /* Ancho máximo contenido */
+    margin: 0 auto;
+    height: 100%;
+}
+
+/* Columna Izquierda */
+.hero-text-col {
+    position: relative;
+    padding-left: 5%;
+    z-index: 10;
+}
+
+/* Vector de fondo (edificios lineales) */
+.hero-vector-bg {
+    position: absolute;
+    top: -50px;
+    left: -100px;
+    width: 600px;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center left;
+    background-size: contain;
+    opacity: 0.4; /* Sutil */
+    z-index: -1;
+    pointer-events: none;
+}
+
+.hero-text-content {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-title {
+    font-size: 3.0rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #1a1a1a;
+    margin-bottom: 40px;
+    letter-spacing: -2px;
+}
+
+.hero-title .highlight-text {
+    color: #bfb37b; /* Dorado de marca */
+    /* Opcional: Gradiente de texto si quisieras imitar el morado de la ref, pero mejor marca */
+}
+
+.hero-desc {
+    color: #666;
+    font-size: 1.1rem;
+    max-width: 400px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+}
+
+/* Stats Block (Círculo Amarillo/Verde) */
+.hero-stats-block {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-circle {
+    width: 100px;
+    height: 100px;
+    background-color: #dbead5; /* Tono verde muy suave/pastel tipo referencia */
+    /* O usar el dorado suave: rgba(191,179,123,0.2) */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #000;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    line-height: 1.2;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Botón Pill Premium */
+.hero-btn-pill {
+    display: inline-flex;
+    align-items: center;
+    background: #1a1a1a; /* Fondo oscuro premium */
+    padding: 12px 12px 12px 35px;
+    border-radius: 60px;
+    text-decoration: none;
+    color: #fff; /* Título blanco */
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    border: 1px solid transparent;
+}
+
+.hero-btn-pill:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    background: #fff; /* Inversión a blanco al hover */
+    color: #1a1a1a;
+    border-color: #eee;
+}
+
+.btn-icon {
+    width: 45px;
+    height: 45px;
+    background: #fff; /* Bola blanca default */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 20px;
+    color: #1a1a1a;
+    transition: all 0.4s ease;
+}
+
+.hero-btn-pill:hover .btn-icon {
+    transform: rotate(-45deg); /* Flecha apuntando arriba-der */
+    background: #bfb37b; /* Bola dorada al hover */
+    color: #fff;
+}
+
+/* Columna Derecha: Slider con forma orgánica */
+.hero-image-col {
+    height: 85vh;
+    padding: 62px; /* Margen interno */
+    padding-left: 40px
+}
+
+.hero-slider-wrapper {
+    width: 100%;
+    height: 100%;
+    border-radius: 40px; /* Bordes muy redondeados */
+    overflow: hidden;
+    position: relative;
+    box-shadow: 20px 20px 60px rgba(0,0,0,0.1);
+    padding: 0; /* Quitamos padding interno para que la imagen llene todo */
+}
+
+/* Slides */
+.hero-slide {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1s ease-in-out, transform 6s ease; /* Efecto Zoom lento */
+    transform: scale(1.1);
+    z-index: 1;
+}
+
+.hero-slide.active {
+    opacity: 1;
+    transform: scale(1);
+    z-index: 2;
+}
+
+/* Controles Slider */
+.slider-controls {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    z-index: 20;
+    display: flex;
+    gap: 10px;
+}
+
+.slider-prev, .slider-next {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slider-prev:hover, .slider-next:hover {
+    background: #fff;
+    color: #000;
+}
+
+/* PROGRESS BORDER (SVG) */
+.slider-progress-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 15; /* Encima de la imagen, bajo controles */
+    pointer-events: none;
+    border-radius: 40px;
+}
+
+.slider-progress-rect {
+    fill: none;
+    stroke: #bfb37b; /* Dorado */
+    stroke-width: 6; /* Grosor del borde */
+    stroke-linecap: round;
+    width: 100%;
+    height: 100%;
+    /* Dash array se calcula en JS, pero iniciamos oculto */
+    stroke-dashoffset: 0; 
+}
+
+/* Clase activa para la animación del borde - ELIMINADA (Usamos JS Web Animations API) */
+/* .slider-progress-rect.anim-active { ... } */
+
+/* Responsive */
+@media (max-width: 991px) {
+    .valencia-hero-premium {
+        height: auto;
+        padding-bottom: 50px;
+    }
+    .hero-text-col {
+        padding: 40px 20px;
+        text-align: center;
+    }
+    .hero-title {
+        font-size: 3rem;
+    }
+    .hero-stats-block {
+        justify-content: center;
+    }
+    .hero-image-col {
+        height: 500px;
+        padding: 20px;
+    }
+    .hero-vector-bg {
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        opacity: 0.2;
+    }
+}
+
+.slider-progress-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 15;
+    pointer-events: none;
+    border-radius: 40px;
+}
