@@ -5,17 +5,13 @@ import { defineConfig } from 'astro/config';
 import { loadEnv } from "vite";
 import sitemap from '@astrojs/sitemap';
 import robotsTxt from "astro-robots-txt";
-
-
-import node from "@astrojs/node";
-
+import vercel from "@astrojs/vercel";
 
 const { SITE_URL, APP_ENV } = loadEnv(
   process.env.NODE_ENV || "development",
   process.cwd(),
   "",
 );
-
 
 export default defineConfig({
   site: SITE_URL || "https://valenciapro.cl",
@@ -32,7 +28,8 @@ export default defineConfig({
           'valenciapro.cl',
           'www.valenciapro.cl',
           'valencia-pro-local.local',
-          '0284i2z2w3.ufs.sh', // UploadThing para assets
+          'docker-image-production-e295.up.railway.app',
+          '0284i2z2w3.ufs.sh',
       ],
       
       service: {
@@ -54,7 +51,5 @@ export default defineConfig({
     }),
   ],
 
-  adapter: node({
-    mode: "standalone",
-  }),
+  adapter: vercel(),
 });

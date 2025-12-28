@@ -1,0 +1,117 @@
+---
+interface Step {
+    number: string;
+    title: string;
+    description: string;
+    icon: string;
+}
+
+interface Props {
+    tagline?: string;
+    title?: string;
+    subtitle?: string;
+    steps?: Step[];
+}
+
+const {
+    tagline = "Proceso Simplificado",
+    title = "Encuentra tu nuevo hogar en cuatro simples pasos",
+    subtitle = "Te guiamos paso a paso para que encuentres la propiedad perfecta para ti.",
+    steps = [
+        {
+            number: "01",
+            title: "Explora nuestras propiedades",
+            description: "Descubre las últimas oportunidades disponibles en nuestro catálogo. Si tienes dudas, te asesoramos.",
+            icon: "search"
+        },
+        {
+            number: "02",
+            title: "Agenda tu visita",
+            description: "Programa una visita cuando más te acomode, sin ningún compromiso. Queremos que conozcas tu próximo hogar.",
+            icon: "calendar"
+        },
+        {
+            number: "03",
+            title: "Recibe asesoría personalizada",
+            description: "Te acompañamos en cada etapa del proceso de compra o arriendo, sin necesidad de avales ni trámites complejos.",
+            icon: "users"
+        },
+        {
+            number: "04",
+            title: "Firma y comienza tu nueva etapa",
+            description: "Concreta tu contrato de forma rápida y segura. ¡Tu nuevo hogar te espera!",
+            icon: "document"
+        }
+    ]
+} = Astro.props;
+
+const icons: Record<string, string> = {
+    search: `<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>`,
+    calendar: `<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
+    users: `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
+    document: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>`
+};
+---
+
+<section class="py-20 bg-gradient-to-b from-[#f9f5ed] to-white relative overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 lg:px-8 relative z-10">
+        
+        <div class="text-center mb-16">
+            <span class="inline-block px-4 py-2 bg-primary/10 text-primary text-sm font-medium rounded-full mb-6">
+                {tagline}
+            </span>
+            
+            <h2 class="text-3xl lg:text-4xl font-bold text-gray-800 mb-6 max-w-3xl mx-auto relative inline-block">
+                {title}
+                <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-primary rounded-full"></span>
+            </h2>
+            
+            {subtitle && (
+                <p class="text-gray-500 max-w-2xl mx-auto mt-8">{subtitle}</p>
+            )}
+        </div>
+
+        <div class="relative">
+            <div class="hidden lg:block absolute top-1/2 left-0 right-0 -translate-y-1/2 h-0.5 border-t-2 border-dashed border-primary/20"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                {steps.map((step) => (
+                    <div class="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
+                        
+                        <div class="relative mb-6">
+                            <span class="absolute -top-2 -left-2 text-5xl font-bold text-primary/10 z-0">
+                                {step.number}
+                            </span>
+                            <div class="relative z-10 w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" set:html={icons[step.icon]} />
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            {step.title}
+                        </h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">
+                            {step.description}
+                        </p>
+                        
+                        <div class="absolute bottom-0 right-0 w-16 h-16 bg-primary/5 rounded-tl-3xl transition-all group-hover:w-20 group-hover:h-20 group-hover:bg-primary/10"></div>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        <div class="text-center mt-14">
+            <a 
+                href="/propiedades" 
+                class="group inline-flex items-center gap-4 bg-gray-900 text-white pl-8 pr-3 py-3 rounded-full font-medium hover:bg-primary transition-all duration-300 hover:-translate-y-1"
+            >
+                Ver propiedades
+                <span class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 transition-transform group-hover:rotate-[-45deg]">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </span>
+            </a>
+        </div>
+    </div>
+</section>
