@@ -4,7 +4,7 @@ import Header from '../../components/Header.astro';
 import '../../styles/single-property.css';
 
 const { slug } = Astro.params;
-const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
+const apiUrl = 'https://cms.valenciapro.cl';
 const mapboxToken = 'pk.eyJ1Ijoiam9zYmVydCIsImEiOiJjbWlzYmR0b3MxN3RnM2hvYnFuZzYzeHhrIn0.IcQTlfA5pb6QtSL7TsUX5A';
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -108,11 +108,22 @@ try {
 // If we have image IDs, fetch the media URLs
 let galleryImages: string[] = [];
 
-console.log('Property data:', property);
+
 if (property?.realEstatePropertyImages) {
     const imageIds = property.realEstatePropertyImages.split('|').filter((id: string) => id);
-    console.log('Image IDs to fetch:', imageIds);
-    
+
+    const queryQLImage = `
+    {
+      mediaItems(where: { in: [${imageIds}] }, first: 50) {
+        nodes {
+          databaseId
+          sourceUrl
+        }
+      }
+    }
+  `
+ 
+
     if (imageIds.length > 0) {
         try {
             // Fetch media items by their IDs
@@ -120,22 +131,15 @@ if (property?.realEstatePropertyImages) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    query: `
-                        query GetMedia($ids: [ID!]!) {
-                            mediaItems(where: { in: $ids }, first: 50) {
-                                nodes {
-                                    databaseId
-                                    sourceUrl
-                                }
-                            }
-                        }
-                    `,
+                    query: queryQLImage,
                     variables: { ids: imageIds }
                 })
             });
-            
+
+         
             const mediaResult = await mediaResponse.json();
-            
+
+         
             if (mediaResult.data?.mediaItems?.nodes) {
                 // Sort media by the original order of IDs
                 const mediaMap = new Map(
@@ -166,7 +170,7 @@ try {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             query: `
-                query GetAllProperties {
+                {
                     properties(
                         where: { orderby: { field: DATE, order: DESC } }
                         first: 100
@@ -190,22 +194,21 @@ try {
     });
     
     const navResult = await navResponse.json();
+    console.log('Navigation result:', navResult);
     const allProperties = navResult.data?.properties?.nodes || [];
     
-    console.log('All properties count:', allProperties.length);
-    console.log('Current property ID:', property.databaseId);
+   
     
     // Find current property index - compare as strings to avoid type issues
     const currentIndex = allProperties.findIndex((p: any) => String(p.databaseId) === String(property.databaseId));
-    console.log('Current index in list:', currentIndex);
-    
+
     if (currentIndex > 0) {
         prevProperty = allProperties[currentIndex - 1];
-        console.log('Prev property:', prevProperty?.title);
+
     }
     if (currentIndex < allProperties.length - 1 && currentIndex !== -1) {
         nextProperty = allProperties[currentIndex + 1];
-        console.log('Next property:', nextProperty?.title);
+      
     }
 } catch (e) {
     console.error('Error fetching adjacent properties:', e);
