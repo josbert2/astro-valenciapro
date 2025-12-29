@@ -373,12 +373,89 @@ flagConfig.forEach(flag => {
 });
 
 const hasFlags = Object.keys(groupedFlags).length > 0;
+
+// JSON-LD Structured Data for Rich Cards
+const siteUrl = 'https://valenciapro.cl';
+const propertyUrl = `${siteUrl}/propiedad/${property.slug}`;
+const propertyImage = property.featuredImage?.node?.sourceUrl || `${siteUrl}/og-image.jpg`;
+
+// Custom OG Image for property pages
+const ogImageParams = new URLSearchParams({
+    title: property.title || 'Propiedad',
+    address: property.realEstatePropertyAddress || 'Santiago, Chile',
+    price: formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit),
+    beds: property.realEstatePropertyBedrooms || '',
+    baths: property.realEstatePropertyBathrooms || '',
+    size: property.realEstatePropertySize || '',
+    operation: property.realEstatePropertyOperation || 'Venta',
+    image: propertyImage,
+});
+const customOgImage = `${siteUrl}/api/og-property.png?${ogImageParams.toString()}`;
+
+// Clean HTML from description
+const cleanDescription = property.content 
+    ? property.content.replace(/<[^>]*>/g, '').substring(0, 300).trim() + '...'
+    : `${property.realEstatePropertyType || 'Propiedad'} en ${property.realEstatePropertyAddress || 'Santiago'}`;
+
+const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    "name": property.title,
+    "description": cleanDescription,
+    "url": propertyUrl,
+    "image": galleryImages.length > 0 ? [propertyImage, ...galleryImages.slice(0, 5)] : [propertyImage],
+    "datePosted": new Date().toISOString(),
+    "offers": {
+        "@type": "Offer",
+        "price": property.realEstatePropertyPriceShort || "0",
+        "priceCurrency": property.valenciaPriceUnit === "UF" ? "CLF" : "CLP",
+        "availability": isAvailable ? "https://schema.org/InStock" : "https://schema.org/SoldOut"
+    },
+    "address": {
+        "@type": "PostalAddress",
+        "streetAddress": property.realEstatePropertyAddress || "",
+        "addressLocality": "Santiago",
+        "addressRegion": "Región Metropolitana",
+        "addressCountry": "CL"
+    },
+    ...(hasLocation && {
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": lat,
+            "longitude": lng
+        }
+    }),
+    "numberOfRooms": parseInt(property.realEstatePropertyBedrooms) || undefined,
+    "numberOfBathroomsTotal": parseInt(property.realEstatePropertyBathrooms) || undefined,
+    "floorSize": property.realEstatePropertySize ? {
+        "@type": "QuantitativeValue",
+        "value": parseInt(property.realEstatePropertySize),
+        "unitCode": "MTK"
+    } : undefined,
+    "broker": {
+        "@type": "RealEstateAgent",
+        "name": "Valencia Propiedades",
+        "url": siteUrl,
+        "telephone": "+56993373237",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Santiago",
+            "addressCountry": "CL"
+        }
+    }
+};
+
+// Remove undefined values
+const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
 ---
 
 <Layout 
     title={property.title} 
     description={`${property.realEstatePropertyType || 'Propiedad'} en ${property.realEstatePropertyAddress || 'Santiago'}`}
+    image={customOgImage}
 >
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(cleanJsonLd)} slot="head" />
  
     
     <!-- Sticky Bar (hidden by default) -->
@@ -412,16 +489,22 @@ const hasFlags = Object.keys(groupedFlags).length > 0;
         </div>
     </div>
 
-    <section class="property-detail pt-10">
+    <section class="property-detail md:pt-10 pt-5">
         <div class="max-w-7xl mx-auto px-4 lg:px-8">
             
             <!-- Breadcrumbs -->
-            <nav class="breadcrumbs">
-                <a href="/">Inicio</a>
-                <span>/</span>
-                <a href="/propiedades">Propiedades</a>
-                <span>/</span>
-                <span class="current">{property.title}</span>
+            <nav class="breadcrumbs" aria-label="Breadcrumb">
+                <a href="/" class="breadcrumb-home" title="Inicio">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span class="breadcrumb-text">Inicio</span>
+                </a>
+                <svg class="breadcrumb-separator" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                <a href="/propiedades" class="breadcrumb-link">Propiedades</a>
+                <svg class="breadcrumb-separator" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                <span class="breadcrumb-current">{property.title}</span>
             </nav>
             
             <!-- Header Row -->
@@ -436,7 +519,7 @@ const hasFlags = Object.keys(groupedFlags).length > 0;
                     )}
                 </div>
                 
-                <div class="header-right flex flex-col ite">
+                <div class="header-right flex flex-row md:flex-col ite">
                     <!-- Property Navigation -->
                     <div class="property-nav">
                         {prevProperty && (

@@ -41,8 +41,9 @@ const ogParams = new URLSearchParams({
     subtitle: description,
 });
 
-// Home: static image, Other pages: dynamic API
-const ogImage = `${siteUrl}/api/og.png?${ogParams.toString()}`;
+// Use custom image if provided, otherwise generate default
+const defaultOgImage = `${siteUrl}/api/og.png?${ogParams.toString()}`;
+const ogImage = image || defaultOgImage;
 ---
 
 
@@ -233,6 +234,9 @@ const ogImage = `${siteUrl}/api/og.png?${ogParams.toString()}`;
                 .valencia-wa-tooltip { display: none; }
             }
         </style>
+        
+        <!-- Slot for page-specific head content (JSON-LD, etc) -->
+        <slot name="head" />
     </head>
     <body class="bg-white text-gray-900 antialiased">
         <Header />

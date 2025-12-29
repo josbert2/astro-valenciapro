@@ -12,12 +12,93 @@ const heroImages = [
     "/hero-2.jpg",
     "/hero-3.jpg",
 ];
+
+const siteUrl = 'https://valenciapro.cl';
+
+// JSON-LD Schemas for Homepage
+const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "RealEstateAgent",
+    "@id": `${siteUrl}/#organization`,
+    "name": "Valencia Propiedades",
+    "alternateName": "Valencia Pro",
+    "url": siteUrl,
+    "logo": `${siteUrl}/logo.png`,
+    "image": `${siteUrl}/og-image.jpg`,
+    "description": "Corretaje inmobiliario en Santiago, Chile. Especialistas en arriendo y venta de casas, departamentos y oficinas.",
+    "telephone": "+56993373237",
+    "email": "contacto@valenciapro.cl",
+    "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Santiago",
+        "addressRegion": "Región Metropolitana",
+        "addressCountry": "CL"
+    },
+    "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": -33.4489,
+        "longitude": -70.6693
+    },
+    "areaServed": {
+        "@type": "City",
+        "name": "Santiago"
+    },
+    "sameAs": [
+        "https://www.instagram.com/valencia.propiedades",
+        "https://wa.me/56993373237"
+    ],
+    "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "09:00",
+        "closes": "18:00"
+    },
+    "priceRange": "$$"
+};
+
+const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${siteUrl}/#website`,
+    "url": siteUrl,
+    "name": "Valencia Propiedades",
+    "description": "Encuentra tu propiedad ideal en Santiago, Chile",
+    "publisher": {
+        "@id": `${siteUrl}/#organization`
+    },
+    "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": `${siteUrl}/propiedades?search={search_term_string}`
+        },
+        "query-input": "required name=search_term_string"
+    }
+};
+
+const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": siteUrl
+        }
+    ]
+};
+
+const allSchemas = [organizationSchema, websiteSchema, breadcrumbSchema];
 ---
 
 <Layout 
     title="Inicio" 
     description="Encuentra tu propiedad ideal en Santiago, Chile. Casas, departamentos y oficinas en arriendo y venta con Valencia Propiedades."
 >
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(allSchemas)} slot="head" />
+    
     <HeroSlider 
         title="Encuentra tu lugar"
         highlightText="en el espacio"
