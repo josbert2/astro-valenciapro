@@ -41,11 +41,16 @@ export const GET: APIRoute = async ({ request }) => {
         fonts.push({ name: 'Lato', data: fontDataBold, weight: 700 as const, style: 'normal' as const });
     }
 
-    // Fetch and convert property image to base64 if provided
+    // Fetch and convert property image to base64 if provided (with timeout)
     let propertyImageBase64 = '';
     if (imageUrl) {
         try {
-            const imageResponse = await fetch(imageUrl);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+            
+            const imageResponse = await fetch(imageUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
             if (imageResponse.ok) {
                 const arrayBuffer = await imageResponse.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
@@ -53,7 +58,8 @@ export const GET: APIRoute = async ({ request }) => {
                 propertyImageBase64 = `data:${contentType};base64,${buffer.toString('base64')}`;
             }
         } catch (e) {
-            console.error('Error fetching property image:', e);
+            // Silently fail - we'll use placeholder instead
+            console.log('Image fetch timeout or error, using placeholder');
         }
     }
 
