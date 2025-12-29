@@ -44,74 +44,365 @@ const {
         }
     ]
 } = Astro.props;
-
-const icons: Record<string, string> = {
-    search: `<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>`,
-    calendar: `<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
-    users: `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
-    document: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>`
-};
 ---
 
-<section class="py-20 bg-gradient-to-b from-[#f9f5ed] to-white relative overflow-hidden">
-    <div class="max-w-7xl mx-auto px-4 lg:px-8 relative z-10">
+<section class="steps-section">
+    <!-- Background decorativo -->
+    <div class="steps-bg"></div>
+    
+    <!-- Círculos decorativos -->
+    <div class="circle-left"></div>
+    <div class="circle-right"></div>
+    <div class="circle-small"></div>
+    
+    <!-- Imagen decorativa izquierda -->
+    <div class="deco-image"></div>
+    
+    <div class="max-w-[1400px] mx-auto px-4 lg:px-8 relative z-10">
         
+        <!-- Header -->
         <div class="text-center mb-16">
-            <span class="inline-block px-4 py-2 bg-primary/10 text-primary text-sm font-medium rounded-full mb-6">
-                {tagline}
-            </span>
+            <span class="section-tag">{tagline}</span>
             
-            <h2 class="text-3xl lg:text-4xl font-bold text-gray-800 mb-6 max-w-3xl mx-auto relative inline-block">
+            <h2 class="section-title">
                 {title}
-                <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-primary rounded-full"></span>
+                <span class="title-underline"></span>
             </h2>
             
             {subtitle && (
-                <p class="text-gray-500 max-w-2xl mx-auto mt-8">{subtitle}</p>
+                <p class="section-desc">{subtitle}</p>
             )}
         </div>
 
-        <div class="relative">
-            <div class="hidden lg:block absolute top-1/2 left-0 right-0 -translate-y-1/2 h-0.5 border-t-2 border-dashed border-primary/20"></div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                {steps.map((step) => (
-                    <div class="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
-                        
-                        <div class="relative mb-6">
-                            <span class="absolute -top-2 -left-2 text-5xl font-bold text-primary/10 z-0">
-                                {step.number}
-                            </span>
-                            <div class="relative z-10 w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" set:html={icons[step.icon]} />
-                            </div>
+        <!-- Steps Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+            {steps.map((step) => (
+                <div class="step-card group">
+                    <!-- Icono circular -->
+                    <div class="step-icon group-hover:bg-primary group-hover:scale-110 group-hover:rotate-[5deg]">
+                        <span class="step-number group-hover:border-primary">{step.number}</span>
+                        <div class="svg-box group-hover:text-white">
+                            {step.icon === 'search' && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            )}
+                            {step.icon === 'calendar' && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                            )}
+                            {step.icon === 'users' && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            )}
+                            {step.icon === 'document' && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            )}
                         </div>
-
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
-                            {step.title}
-                        </h3>
-                        <p class="text-gray-500 text-sm leading-relaxed">
-                            {step.description}
-                        </p>
-                        
-                        <div class="absolute bottom-0 right-0 w-16 h-16 bg-primary/5 rounded-tl-3xl transition-all group-hover:w-20 group-hover:h-20 group-hover:bg-primary/10"></div>
                     </div>
-                ))}
-            </div>
+
+                    <!-- Content -->
+                    <h3 class="step-title">{step.title}</h3>
+                    <p class="step-text">{step.description}</p>
+                    
+                    <!-- Corner decoration -->
+                    <div class="step-corner group-hover:scale-[1.8] group-hover:rotate-45 group-hover:opacity-[0.15]"></div>
+                </div>
+            ))}
         </div>
 
-        <div class="text-center mt-14">
-            <a 
-                href="/propiedades" 
-                class="group inline-flex items-center gap-4 bg-gray-900 text-white pl-8 pr-3 py-3 rounded-full font-medium hover:bg-primary transition-all duration-300 hover:-translate-y-1"
-            >
+        <!-- CTA Button -->
+        <div class="text-center mt-16">
+            <a href="/propiedades" class="cta-btn group">
                 Ver propiedades
-                <span class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 transition-transform group-hover:rotate-[-45deg]">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                </span>
+                <svg class="inline-block ml-2 transition-transform group-hover:translate-x-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
             </a>
         </div>
     </div>
 </section>
+
+<style>
+    .steps-section {
+        position: relative;
+        padding: 140px 0;
+        overflow: hidden;
+    }
+    
+    .steps-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, #fffaf0 0%, #f7f5ef 100%);
+        z-index: 0;
+    }
+    
+    /* Círculos decorativos */
+    .circle-left {
+        position: absolute;
+        left: -8%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 500px;
+        height: 500px;
+        border: 2px solid rgba(184, 176, 141, 0.2);
+        border-radius: 50%;
+        z-index: 0;
+    }
+    
+    .circle-right {
+        position: absolute;
+        right: -5%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 450px;
+        height: 450px;
+        border: 2px solid rgba(184, 176, 141, 0.2);
+        border-radius: 50%;
+        z-index: 0;
+    }
+    
+    .circle-small {
+        position: absolute;
+        right: 12%;
+        top: 15%;
+        width: 100px;
+        height: 100px;
+        border: 2px solid rgba(184, 176, 141, 0.25);
+        border-radius: 50%;
+        z-index: 0;
+    }
+    
+    /* Imagen decorativa */
+    .deco-image {
+        position: absolute;
+        left: -5%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 700px;
+        height: 900px;
+        background-image: url('https://bracketweb.com/zoomvilla-html/assets/images/shapes/about-shape-1-1.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 0.9;
+        filter: sepia(10%) saturate(110%);
+        z-index: 1;
+        pointer-events: none;
+    }
+    
+    /* Typography */
+    .section-tag {
+        display: block;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #b8b08d;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .section-title {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        display: block;
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto 30px;
+    }
+    
+    .title-underline {
+        display: block;
+        width: 60px;
+        height: 4px;
+        background: #b8b08d;
+        margin: 15px auto 0;
+        border-radius: 2px;
+    }
+    
+    .section-desc {
+        max-width: 600px;
+        margin: 0 auto;
+        font-size: 1.1rem;
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    /* Step Card */
+    .step-card {
+        background: #fff;
+        padding: 60px 40px;
+        border-radius: 30px;
+        position: relative;
+        transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+        overflow: hidden;
+        z-index: 2;
+    }
+    
+    .step-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #b8b08d, #e5dcc3, #b8b08d, transparent);
+        background-size: 200% 100%;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+    
+    .step-card:hover {
+        transform: translateY(-15px);
+        box-shadow: 0 30px 60px rgba(184, 176, 141, 0.2);
+        border-color: rgba(184, 176, 141, 0.4);
+    }
+    
+    .step-card:hover::before {
+        opacity: 1;
+        animation: shineLine 2s infinite linear;
+    }
+    
+    @keyframes shineLine {
+        0% { background-position: 100% 0; }
+        100% { background-position: -100% 0; }
+    }
+    
+    /* Step Icon */
+    .step-icon {
+        width: 90px;
+        height: 90px;
+        background: #1a1a1a;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 30px;
+        position: relative;
+        transition: all 0.5s ease;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .step-number {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 30px;
+        height: 30px;
+        background: #fff;
+        border: 2px solid #1a1a1a;
+        color: #1a1a1a;
+        font-size: 12px;
+        font-weight: 800;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: border-color 0.5s;
+        z-index: 5;
+    }
+    
+    .svg-box {
+        color: #b8b08d;
+        transition: color 0.5s ease;
+        transform: scale(1.2);
+    }
+    
+    /* Step content */
+    .step-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #1a1a1a;
+        letter-spacing: -0.5px;
+    }
+    
+    .step-text {
+        font-size: 1rem;
+        color: #777;
+        line-height: 1.7;
+        margin-bottom: 0;
+    }
+    
+    /* Corner decoration */
+    .step-corner {
+        position: absolute;
+        bottom: -20px;
+        right: -20px;
+        width: 100px;
+        height: 100px;
+        background-image: repeating-linear-gradient(45deg, #b8b08d 0, #b8b08d 1px, transparent 0, transparent 50%);
+        background-size: 8px 8px;
+        opacity: 0.1;
+        border-radius: 50%;
+        pointer-events: none;
+        transition: all 0.6s ease;
+        z-index: 0;
+    }
+    
+    /* CTA Button */
+    .cta-btn {
+        display: inline-block;
+        padding: 18px 45px;
+        background: #1a1a1a;
+        color: #fff;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-radius: 60px;
+        text-decoration: none;
+        transition: all 0.4s ease;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        font-size: 13px;
+    }
+    
+    .cta-btn:hover {
+        background: #b8b08d;
+        color: #fff;
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(184, 176, 141, 0.4);
+    }
+    
+    /* Responsive */
+    @media (max-width: 991px) {
+        .circle-left,
+        .circle-right,
+        .circle-small,
+        .deco-image {
+            display: none;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+        }
+        
+        .steps-section {
+            padding: 80px 0;
+        }
+    }
+</style>

@@ -13,6 +13,7 @@
     "@astrojs/node": "^9.5.1",
     "@astrojs/sitemap": "^3.6.0",
     "@astrojs/vercel": "^9.0.2",
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.1.18",
     "@types/canvas-confetti": "^1.9.0",
     "astro": "^5.16.6",
@@ -20,6 +21,12 @@
     "astro-robots-txt": "^1.0.0",
     "astro-seo": "^0.8.4",
     "canvas-confetti": "^1.9.4",
+    "satori": "^0.18.3",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@fontsource/lato": "^5.2.7",
+    "react": "^19.2.3"
   }
 }

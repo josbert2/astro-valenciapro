@@ -1,0 +1,243 @@
+---
+interface Property {
+    title: string;
+    uri: string;
+    featuredImage?: {
+        node: {
+            sourceUrl: string;
+            altText?: string;
+        }
+    };
+    realEstatePropertyAddress?: string;
+    realEstatePropertyBedrooms?: number;
+    realEstatePropertyBathrooms?: number;
+    realEstatePropertyGarage?: number;
+    realEstatePropertyPriceShort?: string;
+    valenciaPriceUnit?: string;
+}
+
+interface Props {
+    title?: string;
+    subtitle?: string;
+    limit?: number;
+}
+
+const {
+    title = "Nuevas propiedades",
+    subtitle = "¡Lo nuevo en arriendo y venta te está esperando!",
+    limit = 4
+} = Astro.props;
+
+const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
+---
+
+<section class="new-properties-section">
+    <div class="max-w-7xl mx-auto px-4 lg:px-8">
+        
+        <!-- Header -->
+        <div class="text-center mb-16">
+            <h2 class="text-3xl lg:text-4xl font-bold text-gray-800 mb-3">{title}</h2>
+            {subtitle && <p class="section-subtitle">{subtitle}</p>}
+        </div>
+
+        <!-- Properties Grid -->
+        <div id="new-properties-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Skeleton loaders -->
+            {[1, 2, 3, 4].map(() => (
+                <div class="skeleton-card">
+                    <div class="skeleton-card-inner">
+                        <div class="skeleton-image"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton-title"></div>
+                            <div class="skeleton-location"></div>
+                            <div class="skeleton-features">
+                                <div class="skeleton-feature"></div>
+                                <div class="skeleton-feature"></div>
+                                <div class="skeleton-feature"></div>
+                            </div>
+                            <div class="skeleton-footer">
+                                <div class="skeleton-price"></div>
+                                <div class="skeleton-btn"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        <!-- CTA Button -->
+        <div class="text-center mt-16">
+            <a href="/propiedades" class="cta-btn group">
+                Ver más propiedades
+                <span class="icon-circle">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<script define:vars={{ apiUrl, limit }}>
+    async function loadNewProperties() {
+        const container = document.getElementById('new-properties-grid');
+        if (!container) return;
+
+        try {
+            const response = await fetch(`${apiUrl}/graphql`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `{
+                        properties(first: 20, where: { orderby: { field: DATE, order: DESC } }) {
+                            nodes {
+                                title
+                                uri
+                                featuredImage {
+                                    node {
+                                        sourceUrl
+                                        altText
+                                    }
+                                }
+                                realEstatePropertyAddress
+                                realEstatePropertyBedrooms
+                                realEstatePropertyBathrooms
+                                realEstatePropertyGarage
+                                realEstatePropertyPriceShort
+                                valenciaPriceUnit
+                                propertyStatus
+                            }
+                        }
+                    }`
+                })
+            });
+
+            const { data } = await response.json();
+            let allProperties = data?.properties?.nodes || [];
+            
+            // Filter: ONLY show disponible (hide arrendada, reservada, vendida, etc.)
+            const allowedStatuses = ['disponible', '']; // empty string assumes available if strictly required
+            const filteredProperties = allProperties.filter(p => {
+                const status = (p.propertyStatus || 'disponible').toLowerCase();
+                return status === 'disponible';
+            });
+            
+            // Limit to desired amount after filtering
+            const properties = filteredProperties.slice(0, limit);
+
+            if (properties.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 col-span-2">No hay propiedades disponibles.</p>';
+                return;
+            }
+
+            container.innerHTML = properties.map(property => {
+                const imageUrl = property.featuredImage?.node?.sourceUrl || '/placeholder.jpg';
+                const altText = property.featuredImage?.node?.altText || property.title;
+                const address = property.realEstatePropertyAddress || '';
+                const bedrooms = property.realEstatePropertyBedrooms || 0;
+                const bathrooms = property.realEstatePropertyBathrooms || 0;
+                const garage = property.realEstatePropertyGarage || 0;
+                const price = property.realEstatePropertyPriceShort || 'Consultar';
+                const unit = property.valenciaPriceUnit || '';
+                
+                const formattedPrice = unit === 'UF' ? `UF ${price}` : `$ ${parseInt(price).toLocaleString('es-CL')}`;
+                // Extract slug and build correct URL
+                const slug = property.uri ? property.uri.replace(/^\/propiedades\//, '').replace(/\/$/, '') : '';
+                const propertyUrl = slug ? `/propiedad/${slug}` : '#';
+                
+                // Get status info
+                const statusSlug = (property.propertyStatus || 'disponible').toLowerCase();
+                const statusName = statusSlug.charAt(0).toUpperCase() + statusSlug.slice(1);
+                
+                // Status colors
+                const statusColors = {
+                    'disponible': { bg: '#bfb37b', dot: '#9a8f5c' }
+                };
+                const colors = statusColors[statusSlug] || statusColors['disponible'];
+
+                return `
+                    <div class="property-card group">
+                        <div class="property-card-inner">
+                            <div class="property-image-wrapper">
+                                <img src="${imageUrl}" alt="${altText}" class="property-image" loading="lazy" />
+                                <!-- Status Badge -->
+                                <span class="status-badge" style="background: ${colors.bg};">
+                                    <span class="status-dot" style="background: ${colors.dot};"></span>
+                                    ${statusName.toUpperCase()}
+                                </span>
+                                <div class="property-actions">
+                                    <button class="action-btn" aria-label="Favorito">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="action-btn" aria-label="Compartir">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                                            <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="property-content">
+                                <h3 class="property-title">
+                                    <a href="${property.uri}">${property.title}</a>
+                                </h3>
+                                ${address ? `
+                                    <p class="property-location">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                            <circle cx="12" cy="10" r="3"/>
+                                        </svg>
+                                        ${address}
+                                    </p>
+                                ` : ''}
+                                <div class="property-features">
+                                    ${bedrooms > 0 ? `
+                                        <div class="feature-item">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                                <polyline points="9 22 9 12 15 12 15 22"/>
+                                            </svg>
+                                            <span>Hab. <strong>${bedrooms}</strong></span>
+                                        </div>
+                                    ` : ''}
+                                    ${bathrooms > 0 ? `
+                                        <div class="feature-item">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M9 6a3 3 0 0 1 6 0v3"/>
+                                                <circle cx="12" cy="12" r="9"/>
+                                            </svg>
+                                            <span>Baños <strong>${bathrooms}</strong></span>
+                                        </div>
+                                    ` : ''}
+                                    ${garage > 0 ? `
+                                        <div class="feature-item">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="2" y="4" width="20" height="13" rx="2"/>
+                                                <circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
+                                            </svg>
+                                            <span>Estac. <strong>${garage}</strong></span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="property-footer">
+                                    <div class="property-price">${formattedPrice}</div>
+                                    <a href="${propertyUrl}" class="btn-details">Detalles</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Error loading properties:', error);
+            container.innerHTML = '<p class="text-center text-red-500 col-span-2">Error al cargar propiedades.</p>';
+        }
+    }
+
+    loadNewProperties();
+</script>
+

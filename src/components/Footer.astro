@@ -1,0 +1,131 @@
+---
+interface Props {
+    phone?: string;
+    email?: string;
+    instagram?: string;
+}
+
+const {
+    phone = "+56 9 9337 3237",
+    email = "paula.fuentes@valenciapro.cl",
+    instagram = "https://www.instagram.com/valencia.propiedades/"
+} = Astro.props;
+---
+
+<footer class="valencia-footer">
+    <!-- Top Contact Bar -->
+    <div class="footer-contact-bar">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8">
+            <div class="footer-contact-wrapper">
+                <div class="footer-logo">
+                    <img src="/logo-blanco.png" alt="Valencia Propiedades" />
+                </div>
+                
+                <div class="footer-contact-items">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <div class="contact-info">
+                            <span class="contact-label">Contacto</span>
+                            <a href={`tel:${phone}`}>{phone}</a>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <div class="contact-info">
+                            <span class="contact-label">Necesito ayuda en vivo</span>
+                            <a href={`mailto:${email}`}>{email}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Footer Content -->
+    <div class="footer-main">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8">
+            <div class="footer-grid">
+                <!-- Sobre nosotros -->
+                <div class="footer-column">
+                    <h3 class="footer-title">Sobre nosotros</h3>
+                    <ul class="footer-links">
+                        <li><a href="/contacto">Contacto</a></li>
+                        <li><a href="/proceso-prestamo">Proceso de préstamo hipotecario</a></li>
+                        <li><a href="/opiniones">Opiniones de los clientes</a></li>
+                        <li><a href="/equipo">Nuestro equipo</a></li>
+                        <li><a href="/trabaja-con-nosotros">Trabaja con nosotros</a></li>
+                    </ul>
+                </div>
+
+                <!-- Listado de Propiedades -->
+                <div class="footer-column">
+                    <h3 class="footer-title">Listado de Propiedades</h3>
+                    <ul class="footer-links footer-tags">
+                        <li><a href="/propiedades?type=departamento">#Departamento</a></li>
+                        <li><a href="/propiedades?type=casa">#Casa</a></li>
+                        <li><a href="/propiedades?operation=arriendo">#Arriendo</a></li>
+                        <li><a href="/propiedades?operation=venta">#Venta</a></li>
+                    </ul>
+                </div>
+
+                <!-- Enlaces rápidos -->
+                <div class="footer-column">
+                    <h3 class="footer-title">Enlaces rápidos</h3>
+                    <ul class="footer-links">
+                        <li><a href="/condiciones-de-uso">Condiciones de uso</a></li>
+                        <li><a href="/politica-de-privacidad">Política de privacidad</a></li>
+                        <li><a href="/servicios">Nuestros servicios</a></li>
+                        <li><a href="/preguntas-frecuentes">Preguntas frecuentes</a></li>
+                    </ul>
+                </div>
+
+                <!-- Newsletter -->
+                <div class="footer-column footer-newsletter">
+                    <h3 class="footer-title">Hoja informativa</h3>
+                    <p class="newsletter-subtitle">Regístrate para recibir los últimos artículos</p>
+                    
+                    <form class="newsletter-form" id="footer-newsletter-form">
+                        <input type="email" name="email" placeholder="Su dirección de correo electrónico" required class="newsletter-input" />
+                        <button type="submit" class="newsletter-button">Suscribir</button>
+                    </form>
+                    
+                    <label class="newsletter-checkbox">
+                        <input type="checkbox" required />
+                        <span>Aceptas los términos y condiciones</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Bottom -->
+    <div class="footer-bottom">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8">
+            <div class="footer-bottom-wrapper">
+                <div class="footer-copyright">
+                    <p>Copyright © 2025 - Bienes raíces. Diseño y desarrollo: <a href="https://josbert.dev" target="_blank" rel="noopener noreferrer">josbert.dev</a></p>
+                </div>
+                
+                <div class="footer-social">
+                    <span class="social-label">Síguenos</span>
+                    <div class="social-links">
+                        <a href={instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>

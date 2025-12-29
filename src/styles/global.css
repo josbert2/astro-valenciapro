@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import './header.css';
+@import './newPropiedades.css';
+@import './footer.css';
+@import './single-property.css';
 
 :root {
     --tp-theme-primary: #d6a300;

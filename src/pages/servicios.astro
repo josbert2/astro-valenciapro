@@ -1,0 +1,278 @@
+---
+import Layout from '../layouts/main.astro';
+
+const services = [
+    {
+        number: '01',
+        icon: 'city',
+        title: 'Venta de Propiedades',
+        description: 'Gestionamos la venta con estrategias de marketing avanzadas para asegurar el mejor precio de mercado.',
+        link: '/contacto?interes=venta'
+    },
+    {
+        number: '02',
+        icon: 'hand-holding-dollar',
+        title: 'Arriendo Seguro',
+        description: 'Análisis riguroso de arrendatarios para proteger tu inversión y garantizar ingresos constantes.',
+        link: '/contacto?interes=arriendo'
+    },
+    {
+        number: '03',
+        icon: 'file-signature',
+        title: 'Administración',
+        description: 'Nos encargamos del cobro, mantenciones y la relación día a día con el arrendatario.',
+        link: '/contacto?interes=administracion'
+    },
+    {
+        number: '04',
+        icon: 'chart-line-up',
+        title: 'Tasación Comercial',
+        description: 'Valorización precisa utilizando datos reales del mercado actual y comparables del sector.',
+        link: '/contacto?interes=tasacion'
+    },
+    {
+        number: '05',
+        icon: 'scale-balanced',
+        title: 'Asesoría Legal',
+        description: 'Apoyo jurídico experto en estudios de títulos, redacción de contratos y negociación.',
+        link: '/contacto?interes=legal'
+    },
+    {
+        number: '06',
+        icon: 'buildings',
+        title: 'Proyectos',
+        description: 'Oportunidades de inversión en blanco y verde con alta plusvalía proyectada.',
+        link: '/contacto?interes=inversion'
+    }
+];
+
+// SVG icons map
+const icons: Record<string, string> = {
+    'city': `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M5 21V7l8-4v18M13 21V7l6 4v10M9 9v.01M9 12v.01M9 15v.01M9 18v.01M17 11v.01M17 14v.01M17 17v.01"/></svg>`,
+    'hand-holding-dollar': `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 6v12M9 9.5c0-.8.7-1.5 1.5-1.5h3c.8 0 1.5.7 1.5 1.5S14.3 11 13.5 11h-3c-.8 0-1.5.7-1.5 1.5s.7 1.5 1.5 1.5h3c.8 0 1.5-.7 1.5-1.5"/><path d="M4 11c0-3.9 3.1-7 7-7h2c3.9 0 7 3.1 7 7v6c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2v-6z"/></svg>`,
+    'file-signature': `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 15l2 2 4-4"/></svg>`,
+    'chart-line-up': `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/></svg>`,
+    'scale-balanced': `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v18M3 6l9-3 9 3"/><path d="M3 6c0 1.7 2 3 4.5 3S12 7.7 12 6c0-1.7-2-3-4.5-3S3 4.3 3 6z"/><path d="M12 6c0 1.7 2 3 4.5 3S21 7.7 21 6c0-1.7-2-3-4.5-3S12 4.3 12 6z"/><path d="M3 8v4c0 1.1 2 2 4.5 2s4.5-.9 4.5-2V8"/><path d="M12 8v4c0 1.1 2 2 4.5 2s4.5-.9 4.5-2V8"/></svg>`,
+    'buildings': `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M4 21V9l5-4 5 4v12M14 21V9l5-4v16M9 9v.01M9 12v.01M9 15v.01"/></svg>`
+};
+---
+
+<Layout title="Servicios | Valencia Pro" description="Conoce nuestros servicios profesionales de corretaje inmobiliario: venta, arriendo, administración, tasación y asesoría legal.">
+    <section class="valencia-services-modern-section">
+        <div class="container">
+            <!-- Header -->
+            <div class="header-center">
+                <span class="valencia-pill-badge">SERVICIOS PROFESIONALES</span>
+                <h2 class="section-title">Nuestros Servicios</h2>
+                <p class="section-subtitle">Soluciones integrales para cada etapa de tu inversión</p>
+            </div>
+
+            <div class="services-grid">
+                {services.map((service) => (
+                    <div class="modern-card">
+                        <!-- Número y Línea -->
+                        <div class="card-top">
+                            <span class="card-number">{service.number}.</span>
+                            <div class="card-line"></div>
+                        </div>
+
+                        <!-- Icono -->
+                        <div class="card-icon" set:html={icons[service.icon]} />
+
+                        <!-- Contenido -->
+                        <h3 class="card-title">{service.title}</h3>
+                        <p class="card-desc">{service.description}</p>
+
+                        <!-- Botón Flotante en Notch -->
+                        <div class="card-notch-corner">
+                            <a href={service.link} class="notch-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </section>
+</Layout>
+
+<style>
+    .valencia-services-modern-section {
+        padding: 100px 0;
+        background: #f9f9f9;
+        font-family: 'Lato', sans-serif;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .header-center {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2d3436;
+        margin-bottom: 10px;
+    }
+
+    .section-subtitle {
+        color: #636e72;
+        font-size: 1.1rem;
+    }
+
+    /* Pill Badge */
+    .valencia-pill-badge {
+        display: inline-block;
+        background-color: rgba(191,179,123,0.1);
+        color: #bfb37b;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        padding: 10px 28px;
+        border-radius: 30px;
+        margin-bottom: 20px;
+    }
+
+    /* Grid */
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+
+    /* Card */
+    .modern-card {
+        background-color: #DAD8D4;
+        border-radius: 24px;
+        padding: 40px 40px 60px 40px;
+        position: relative;
+        height: 100%;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+    }
+
+    /* Card Top */
+    .card-top {
+        margin-bottom: 30px;
+    }
+
+    .card-number {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #2d3436;
+        display: block;
+        margin-bottom: 15px;
+    }
+
+    .card-line {
+        width: 100%;
+        height: 1px;
+        background-color: rgba(0,0,0,0.1);
+    }
+
+    /* Icon */
+    .card-icon {
+        margin-bottom: 25px;
+        color: #2d3436;
+    }
+
+    /* Texts */
+    .card-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #000;
+        line-height: 1.2;
+        margin-bottom: 20px;
+        letter-spacing: -0.5px;
+    }
+
+    .card-desc {
+        font-size: 1rem;
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 0;
+        flex-grow: 1;
+    }
+
+    /* Notch Corner */
+    .card-notch-corner {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    .card-notch-corner::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 40px;
+        height: 40px;
+        background: transparent;
+        border-radius: 40px 0 0 0;
+        box-shadow: 20px 20px 0 20px #f9f9f9;
+    }
+
+    .notch-btn {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 60px;
+        height: 60px;
+        background-color: #000;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        text-decoration: none;
+        transition: transform 0.3s ease;
+        pointer-events: auto;
+        z-index: 20;
+    }
+
+    .notch-btn:hover {
+        transform: scale(1.1) rotate(45deg);
+        color: #fff;
+    }
+
+    /* Responsive */
+    @media (max-width: 991px) {
+        .services-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .services-grid {
+            grid-template-columns: 1fr;
+        }
+        .modern-card {
+            padding: 30px 30px 50px 30px;
+        }
+        .card-title {
+            font-size: 1.5rem;
+        }
+        .section-title {
+            font-size: 2rem;
+        }
+    }
+</style>

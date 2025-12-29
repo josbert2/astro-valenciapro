@@ -1,10 +1,11 @@
 ---
 import Layout from '../layouts/main.astro';
-import Header from '../components/Header.astro';
 import HeroSlider from '../components/HeroSlider.astro';
 import AboutMe from '../components/AboutMe.astro';
 import PropertiesSection from '../components/PropertiesSection.astro';
 import StepsSection from '../components/StepsSection.astro';
+import NewPropertiesSection from '../components/NewPropertiesSection.astro';
+import MapSection from '../components/MapSection.astro';
 
 const heroImages = [
     "/hero-1.jpg",
@@ -17,8 +18,6 @@ const heroImages = [
     title="Inicio" 
     description="Encuentra tu propiedad ideal en Santiago, Chile. Casas, departamentos y oficinas en arriendo y venta con Valencia Propiedades."
 >
-    <Header />
-    
     <HeroSlider 
         title="Encuentra tu lugar"
         highlightText="en el espacio"
@@ -32,8 +31,8 @@ const heroImages = [
     />
     
     <AboutMe />
-    
     <PropertiesSection />
-    
     <StepsSection />
+    <NewPropertiesSection />
+    <MapSection />
 </Layout>

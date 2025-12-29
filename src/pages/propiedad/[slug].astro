@@ -1,0 +1,1225 @@
+---
+import Layout from '../../layouts/main.astro';
+import Header from '../../components/Header.astro';
+import '../../styles/single-property.css';
+
+const { slug } = Astro.params;
+const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
+const mapboxToken = 'pk.eyJ1Ijoiam9zYmVydCIsImEiOiJjbWlzYmR0b3MxN3RnM2hvYnFuZzYzeHhrIn0.IcQTlfA5pb6QtSL7TsUX5A';
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+
+
+let property: any = null;
+
+const queryQL = `
+{
+  properties(where: { name: "${slug}" }, first: 1) {
+    nodes {
+      databaseId
+      title
+      content
+      uri
+      slug
+      featuredImage {
+        node {
+          sourceUrl
+        }
+      }
+
+      realEstatePropertyAddress
+      realEstatePropertyBedrooms
+      realEstatePropertyBathrooms
+      realEstatePropertyGarage
+      realEstatePropertySize
+      realEstatePropertyLand
+      realEstatePropertyStorageRooms
+      realEstatePropertyConstructionYear
+      realEstatePropertyCommonExpenses
+      realEstatePropertyPriceShort
+      valenciaPriceUnit
+      realEstatePropertyType
+      realEstatePropertyOperation
+      realEstatePropertyLocation
+      realEstatePropertyImages
+      realEstatePropertyStatusCustom
+      propertyStatus
+      realEstatePropertyVideoUrl
+      realEstateFloors
+
+      # Property Flags
+      realEstatePropertyNaturalGas
+      realEstatePropertyAirConditioning
+      realEstatePropertyFireplace
+      realEstatePropertyBoiler
+      realEstatePropertySolarEnergy
+      realEstatePropertyFurnished
+      realEstatePropertyCloset
+      realEstatePropertyWalkInCloset
+      realEstatePropertyLaundry
+      realEstatePropertyStudy
+      realEstatePropertySecurity247
+      realEstatePropertySecurityCamera
+      realEstatePropertyBuiltInAlarm
+      realEstatePropertyAutomaticGate
+      realEstatePropertyGatedCommunity
+      realEstatePropertyConcierge
+      realEstatePropertyGarden
+      realEstatePropertyPool
+      realEstatePropertyBbqGrill
+      realEstatePropertyBalcony
+      realEstatePropertyTerrace
+      realEstatePropertyPetsAllowed
+      realEstatePropertyElevator
+      realEstatePropertyGym
+      realEstatePropertyMultipurposeRoom
+      realEstatePropertyVisitorParking
+      realEstatePropertyBikeRack
+      realEstatePropertyInternetAccess
+      realEstatePropertyCableTv
+      realEstatePropertyTennisCourt
+      realEstatePropertySoccerField
+    }
+  }
+}`
+
+try {
+    const response = await fetch(`${apiUrl}/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: queryQL, variables: { slug } }),
+
+      
+    });
+    
+    const result = await response.json();
+    
+    if (result.errors) {
+        console.log('GraphQL errors:', JSON.stringify(result.errors, null, 2));
+    }
+    
+    console.log('Slug:', slug);
+    console.log('Properties found:', result.data?.properties?.nodes?.length || 0);
+    
+    property = result.data?.properties?.nodes?.[0];
+} catch (error) {
+    console.error('Error fetching property:', error);
+}
+
+// If we have image IDs, fetch the media URLs
+let galleryImages: string[] = [];
+
+console.log('Property data:', property);
+if (property?.realEstatePropertyImages) {
+    const imageIds = property.realEstatePropertyImages.split('|').filter((id: string) => id);
+    console.log('Image IDs to fetch:', imageIds);
+    
+    if (imageIds.length > 0) {
+        try {
+            // Fetch media items by their IDs
+            const mediaResponse = await fetch(`${apiUrl}/graphql`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `
+                        query GetMedia($ids: [ID!]!) {
+                            mediaItems(where: { in: $ids }, first: 50) {
+                                nodes {
+                                    databaseId
+                                    sourceUrl
+                                }
+                            }
+                        }
+                    `,
+                    variables: { ids: imageIds }
+                })
+            });
+            
+            const mediaResult = await mediaResponse.json();
+            
+            if (mediaResult.data?.mediaItems?.nodes) {
+                // Sort media by the original order of IDs
+                const mediaMap = new Map(
+                    mediaResult.data.mediaItems.nodes.map((m: any) => [String(m.databaseId), m.sourceUrl])
+                );
+                galleryImages = imageIds
+                    .map((id: string) => mediaMap.get(id))
+                    .filter((url: string | undefined): url is string => !!url);
+            }
+        } catch (e) {
+            console.error('Error fetching gallery images:', e);
+        }
+    }
+}
+
+if (!property) {
+    console.log('Property not found:', slug);
+    return Astro.redirect('/404');
+}
+
+// Fetch adjacent properties for prev/next navigation
+let prevProperty: any = null;
+let nextProperty: any = null;
+
+try {
+    const navResponse = await fetch(`${apiUrl}/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            query: `
+                query GetAllProperties {
+                    properties(
+                        where: { orderby: { field: DATE, order: DESC } }
+                        first: 100
+                    ) {
+                        nodes {
+                            databaseId
+                            title
+                            slug
+                            featuredImage { node { sourceUrl } }
+                            realEstatePropertyBedrooms
+                            realEstatePropertyBathrooms
+                            realEstatePropertySize
+                            realEstatePropertyGarage
+                            realEstatePropertyPriceShort
+                            valenciaPriceUnit
+                        }
+                    }
+                }
+            `
+        })
+    });
+    
+    const navResult = await navResponse.json();
+    const allProperties = navResult.data?.properties?.nodes || [];
+    
+    console.log('All properties count:', allProperties.length);
+    console.log('Current property ID:', property.databaseId);
+    
+    // Find current property index - compare as strings to avoid type issues
+    const currentIndex = allProperties.findIndex((p: any) => String(p.databaseId) === String(property.databaseId));
+    console.log('Current index in list:', currentIndex);
+    
+    if (currentIndex > 0) {
+        prevProperty = allProperties[currentIndex - 1];
+        console.log('Prev property:', prevProperty?.title);
+    }
+    if (currentIndex < allProperties.length - 1 && currentIndex !== -1) {
+        nextProperty = allProperties[currentIndex + 1];
+        console.log('Next property:', nextProperty?.title);
+    }
+} catch (e) {
+    console.error('Error fetching adjacent properties:', e);
+}
+
+// Helper functions
+function formatPrice(price: string, unit: string) {
+    if (!price) return 'Consultar';
+    if (unit === 'UF') {
+        return `UF ${parseFloat(price).toLocaleString('es-CL')}`;
+    }
+    return `$ ${parseInt(price).toLocaleString('es-CL')}`;
+}
+
+// Current page URL for sharing
+const currentUrl = `${apiUrl}/propiedad/${slug}`;
+
+// galleryImages already fetched and resolved to URLs above
+
+// Parse location
+let lat = 0, lng = 0;
+if (property.realEstatePropertyLocation) {
+    const loc = property.realEstatePropertyLocation;
+    if (typeof loc === 'string' && loc.includes(',')) {
+        const coords = loc.split(',');
+        lat = parseFloat(coords[0].trim());
+        lng = parseFloat(coords[1].trim());
+    }
+}
+
+const hasLocation = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+
+// Status colors
+const statusColors: Record<string, string> = {
+    'disponible': '#10b981',      // Verde
+    'arrendada': '#3b82f6',       // Azul
+    'vendida': '#ef4444',         // Rojo
+    'reservada': '#f59e0b',       // Amarillo/Naranja
+    'mantenimiento': '#6b7280',   // Gris
+    // Legacy/alternate values
+    'activa': '#10b981',
+    'inactiva': '#9ca3af',
+    'captacion': '#f59e0b',
+    'captación': '#f59e0b',
+};
+
+const operationColors: Record<string, string> = {
+    'arriendo temporal': '#9ab464',
+    'arriendo': '#bfb37b',
+    'venta': '#c07b59',
+};
+
+const operationSlug = property.realEstatePropertyOperation?.toLowerCase() || '';
+const typeLabel = property.realEstatePropertyType || '';
+const operationColor = operationColors[operationSlug] || '#bfb37b';
+
+// Status badge - uses property_status field
+const statusLabel = property.propertyStatus || 'disponible';
+const statusColor = statusColors[statusLabel.toLowerCase()] || '#10b981';
+
+// Darken color function for the dot
+function darkenHex(hex: string, factor: number = 0.85): string {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.round((num >> 16) * factor);
+    const g = Math.round(((num >> 8) & 0x00FF) * factor);
+    const b = Math.round((num & 0x0000FF) * factor);
+    return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+}
+const statusDotColor = darkenHex(statusColor, 0.7);
+
+// Determine if property is available for inquiry
+const unavailableStatuses = ['arrendada', 'vendida', 'mantenimiento'];
+const isAvailable = !unavailableStatuses.includes(statusLabel.toLowerCase());
+
+// Status labels for disabled state
+const statusMessages: Record<string, string> = {
+    'arrendada': 'Arrendada',
+    'vendida': 'Vendida',
+    'mantenimiento': 'En Mantenimiento',
+};
+const disabledMessage = statusMessages[statusLabel.toLowerCase()] || 'No disponible';
+
+const features = property.propertyFeatures?.nodes || [];
+
+// Parse floor plans
+let floors: any[] = [];
+try {
+    if (property.realEstateFloors) {
+        floors = JSON.parse(property.realEstateFloors);
+    }
+} catch (e) {
+    floors = [];
+}
+
+// Property Flags Configuration
+type FlagConfig = { key: string; label: string; icon: string; category: string };
+const isTruthy = (val: any) => val === '1' || val === 'yes' || val === 'true' || val === true || val === 1;
+
+const flagConfig: FlagConfig[] = [
+    // Climatización
+    { key: 'realEstatePropertyNaturalGas', label: 'Gas natural', icon: '🔥', category: 'climatizacion' },
+    { key: 'realEstatePropertyAirConditioning', label: 'Aire acondicionado', icon: '❄️', category: 'climatizacion' },
+    { key: 'realEstatePropertyFireplace', label: 'Chimenea', icon: '🔥', category: 'climatizacion' },
+    { key: 'realEstatePropertyBoiler', label: 'Caldera', icon: '💧', category: 'climatizacion' },
+    { key: 'realEstatePropertySolarEnergy', label: 'Energía solar', icon: '☀️', category: 'climatizacion' },
+    // Interior
+    { key: 'realEstatePropertyFurnished', label: 'Amoblada', icon: '🛋️', category: 'interior' },
+    { key: 'realEstatePropertyCloset', label: 'Closet', icon: '🚪', category: 'interior' },
+    { key: 'realEstatePropertyWalkInCloset', label: 'Walk-in closet', icon: '👔', category: 'interior' },
+    { key: 'realEstatePropertyLaundry', label: 'Lavandería', icon: '🧺', category: 'interior' },
+    { key: 'realEstatePropertyStudy', label: 'Estudio', icon: '📚', category: 'interior' },
+    // Seguridad
+    { key: 'realEstatePropertySecurity247', label: 'Seguridad 24/7', icon: '🔒', category: 'seguridad' },
+    { key: 'realEstatePropertySecurityCamera', label: 'Cámaras de seguridad', icon: '📹', category: 'seguridad' },
+    { key: 'realEstatePropertyBuiltInAlarm', label: 'Alarma incorporada', icon: '🔔', category: 'seguridad' },
+    { key: 'realEstatePropertyAutomaticGate', label: 'Portón automático', icon: '🚗', category: 'seguridad' },
+    { key: 'realEstatePropertyGatedCommunity', label: 'Condominio cerrado', icon: '🏘️', category: 'seguridad' },
+    { key: 'realEstatePropertyConcierge', label: 'Conserjería', icon: '👤', category: 'seguridad' },
+    // Exteriores
+    { key: 'realEstatePropertyGarden', label: 'Jardín', icon: '🌳', category: 'exteriores' },
+    { key: 'realEstatePropertyPool', label: 'Piscina', icon: '🏊', category: 'exteriores' },
+    { key: 'realEstatePropertyBbqGrill', label: 'Quincho', icon: '🍖', category: 'exteriores' },
+    { key: 'realEstatePropertyBalcony', label: 'Balcón', icon: '🏙️', category: 'exteriores' },
+    { key: 'realEstatePropertyTerrace', label: 'Terraza', icon: '☀️', category: 'exteriores' },
+    { key: 'realEstatePropertyPetsAllowed', label: 'Pet friendly', icon: '🐕', category: 'exteriores' },
+    // Servicios
+    { key: 'realEstatePropertyElevator', label: 'Ascensor', icon: '🛗', category: 'servicios' },
+    { key: 'realEstatePropertyGym', label: 'Gimnasio', icon: '💪', category: 'servicios' },
+    { key: 'realEstatePropertyMultipurposeRoom', label: 'Sala múltiple', icon: '👥', category: 'servicios' },
+    { key: 'realEstatePropertyVisitorParking', label: 'Est. visitas', icon: '🅿️', category: 'servicios' },
+    { key: 'realEstatePropertyBikeRack', label: 'Bicicletero', icon: '🚲', category: 'servicios' },
+    // Conectividad
+    { key: 'realEstatePropertyInternetAccess', label: 'Acceso a internet', icon: '📶', category: 'conectividad' },
+    { key: 'realEstatePropertyCableTv', label: 'TV cable', icon: '📺', category: 'conectividad' },
+    // Deportes
+    { key: 'realEstatePropertyTennisCourt', label: 'Cancha de tenis', icon: '🎾', category: 'deportes' },
+    { key: 'realEstatePropertySoccerField', label: 'Cancha de fútbol', icon: '⚽', category: 'deportes' },
+];
+
+const categoryLabels: Record<string, { label: string; color: string }> = {
+    'climatizacion': { label: 'Climatización y Energía', color: '#C2A370' },
+    'interior': { label: 'Interior', color: '#8970C2' },
+    'seguridad': { label: 'Seguridad', color: '#708FC2' },
+    'exteriores': { label: 'Exteriores y Recreación', color: '#708FC2' },
+    'servicios': { label: 'Servicios del Edificio', color: '#70C2A7' },
+    'conectividad': { label: 'Conectividad', color: '#C27070' },
+    'deportes': { label: 'Áreas Deportivas', color: '#70B6C2' },
+};
+
+const categoryOrder = ['climatizacion', 'interior', 'seguridad', 'exteriores', 'servicios', 'conectividad', 'deportes'];
+
+// Get active flags grouped by category
+const groupedFlags: Record<string, FlagConfig[]> = {};
+flagConfig.forEach(flag => {
+    const value = (property as any)[flag.key];
+    if (isTruthy(value)) {
+        if (!groupedFlags[flag.category]) {
+            groupedFlags[flag.category] = [];
+        }
+        groupedFlags[flag.category].push(flag);
+    }
+});
+
+const hasFlags = Object.keys(groupedFlags).length > 0;
+---
+
+<Layout 
+    title={property.title} 
+    description={`${property.realEstatePropertyType || 'Propiedad'} en ${property.realEstatePropertyAddress || 'Santiago'}`}
+>
+ 
+    
+    <!-- Sticky Bar (hidden by default) -->
+    <div class="sticky-bar" id="stickyBar">
+        <div class="sticky-content max-w-7xl mx-auto px-4">
+            <div class="sticky-left">
+                {property.featuredImage?.node?.sourceUrl && (
+                    <img src={property.featuredImage.node.sourceUrl} alt={property.title} class="sticky-thumb" />
+                )}
+                <div class="sticky-info">
+                    <h4>{property.title}</h4>
+                    <div class="sticky-meta">
+                        {property.realEstatePropertyAddress && (
+                            <span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+                                {property.realEstatePropertyAddress}
+                            </span>
+                        )}
+                        <span class="sticky-specs">
+                            {property.realEstatePropertyBedrooms && <span>{property.realEstatePropertyBedrooms} Hab</span>}
+                            {property.realEstatePropertyBathrooms && <span>{property.realEstatePropertyBathrooms} Baños</span>}
+                            {property.realEstatePropertySize && <span>{property.realEstatePropertySize} m²</span>}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="sticky-right">
+                <span class="sticky-price">{formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit)}</span>
+                <a href="javascript:void(0)" onclick="openContactModal()" class="sticky-btn">Consultar</a>
+            </div>
+        </div>
+    </div>
+
+    <section class="property-detail pt-10">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8">
+            
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumbs">
+                <a href="/">Inicio</a>
+                <span>/</span>
+                <a href="/propiedades">Propiedades</a>
+                <span>/</span>
+                <span class="current">{property.title}</span>
+            </nav>
+            
+            <!-- Header Row -->
+            <div class="property-header">
+                <div class="header-left flex flex-col justify-center">
+                    <h1 class="property-title">{property.title}</h1>
+                    {property.realEstatePropertyAddress && (
+                        <p class="property-location">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-map-pin"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" /></svg>
+                            {property.realEstatePropertyAddress}
+                        </p>
+                    )}
+                </div>
+                
+                <div class="header-right flex flex-col ite">
+                    <!-- Property Navigation -->
+                    <div class="property-nav">
+                        {prevProperty && (
+                            <div class="nav-wrapper">
+                                <a href={`/propiedad/${prevProperty.slug}`} class="nav-link nav-prev">
+                                    <span class="nav-arrow">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                                    </span>
+                                    <span class="nav-text">Anterior</span>
+                                </a>
+                                <div class="nav-hover-card nav-hover-left">
+                                    {prevProperty.featuredImage?.node?.sourceUrl && (
+                                        <img src={prevProperty.featuredImage.node.sourceUrl} alt={prevProperty.title} />
+                                    )}
+                                    <div class="nav-hover-content">
+                                        <h4>{prevProperty.title}</h4>
+                                        <div class="nav-hover-features">
+                                            {prevProperty.realEstatePropertyBedrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V7H1v10h2v-3h18v3h2V11c0-2.21-1.79-4-4-4z"/></svg> {prevProperty.realEstatePropertyBedrooms}</span>}
+                                            {prevProperty.realEstatePropertyBathrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7c-.55 0-1 .45-1 1v3H2v5h2v2h2v-2h12v2h2v-2h2v-5h-4V8c0-.55-.45-1-1-1h-3v2h2v2H8V8c0-.55-.45-1-1-1z"/></svg> {prevProperty.realEstatePropertyBathrooms}</span>}
+                                            {prevProperty.realEstatePropertySize && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg> {prevProperty.realEstatePropertySize}m²</span>}
+                                        </div>
+                                        <p class="nav-hover-price">{formatPrice(prevProperty.realEstatePropertyPriceShort, prevProperty.valenciaPriceUnit)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {nextProperty && (
+                            <div class="nav-wrapper">
+                                <a href={`/propiedad/${nextProperty.slug}`} class="nav-link nav-next">
+                                    <span class="nav-text">Siguiente</span>
+                                    <span class="nav-arrow">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                                    </span>
+                                </a>
+                                <div class="nav-hover-card nav-hover-right">
+                                    {nextProperty.featuredImage?.node?.sourceUrl && (
+                                        <img src={nextProperty.featuredImage.node.sourceUrl} alt={nextProperty.title} />
+                                    )}
+                                    <div class="nav-hover-content">
+                                        <h4>{nextProperty.title}</h4>
+                                        <div class="nav-hover-features">
+                                            {nextProperty.realEstatePropertyBedrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V7H1v10h2v-3h18v3h2V11c0-2.21-1.79-4-4-4z"/></svg> {nextProperty.realEstatePropertyBedrooms}</span>}
+                                            {nextProperty.realEstatePropertyBathrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7c-.55 0-1 .45-1 1v3H2v5h2v2h2v-2h12v2h2v-2h2v-5h-4V8c0-.55-.45-1-1-1h-3v2h2v2H8V8c0-.55-.45-1-1-1z"/></svg> {nextProperty.realEstatePropertyBathrooms}</span>}
+                                            {nextProperty.realEstatePropertySize && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg> {nextProperty.realEstatePropertySize}m²</span>}
+                                        </div>
+                                        <p class="nav-hover-price">{formatPrice(nextProperty.realEstatePropertyPriceShort, nextProperty.valenciaPriceUnit)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <!-- Social Share Buttons -->
+                    <div class="share-buttons">
+                        <a href={`https://wa.me/?text=${encodeURIComponent(property.title + ' ' + currentUrl)}`} class="share-btn share-whatsapp" target="_blank" rel="nofollow" title="Compartir en WhatsApp">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        </a>
+                        <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`} class="share-btn share-facebook" target="_blank" rel="nofollow" title="Compartir en Facebook">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        </a>
+                        <a href="https://www.instagram.com/valenciapropiedades" class="share-btn share-instagram" target="_blank" rel="nofollow" title="Síguenos en Instagram">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.757-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gallery Section -->
+            <div class="gallery-container">
+                <div class={`gallery-grid ${galleryImages.length > 0 ? 'has-gallery' : ''}`}>
+                    {property.featuredImage?.node?.sourceUrl && (
+                        <div class="gallery-item featured">
+                            <div class="gallery-skeleton"></div>
+                            <img 
+                                src={property.featuredImage.node.sourceUrl} 
+                                alt={property.title}
+                                loading="eager"
+                                onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';"
+                            />
+                        </div>
+                    )}
+                    {galleryImages.slice(0, 4).map((img: string, i: number) => (
+                        <div class={`gallery-item grid-${i + 1}`}>
+                            <div class="gallery-skeleton"></div>
+                            <img 
+                                src={img} 
+                                alt={`${property.title} - ${i + 2}`}
+                                loading="lazy"
+                                onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';"
+                            />
+                        </div>
+                    ))}
+                </div>
+                {(galleryImages.length > 4 || property.featuredImage?.node?.sourceUrl) && (
+                    <button class="btn-show-photos" id="showPhotosBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                        Mostrar {galleryImages.length + 1} fotos
+                    </button>
+                )}
+            </div>
+            
+            <!-- Property Info -->
+            <div class="property-info">
+                <!-- Badges -->
+                <div class="badges-row">
+                    <span class="badge badge-status" style={`background: ${statusColor};`}>
+                        <span class="status-dot" style={`background: ${statusDotColor};`}></span>
+                        {statusLabel.toUpperCase()}
+                    </span>
+                    {typeLabel && <span class="badge badge-type">{typeLabel}</span>}
+                    {operationSlug && (
+                        <span class="badge" style={`background: ${operationColor}; color: #fff;`}>
+                            {operationSlug.charAt(0).toUpperCase() + operationSlug.slice(1)}
+                        </span>
+                    )}
+                </div>
+                
+                <!-- Specs + Price Row -->
+                <div class="specs-row">
+                    <div class="specs-cards">
+                        {property.realEstatePropertySize && (
+                            <div class="spec-card">
+                                <span class="spec-label">Superficie útil</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg>
+                                    {property.realEstatePropertySize} m²
+                                </span>
+                            </div>
+                        )}
+                        {property.realEstatePropertyLand && (
+                            <div class="spec-card">
+                                <span class="spec-label">Superficie total</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg>
+                                    {property.realEstatePropertyLand} m²
+                                </span>
+                            </div>
+                        )}
+                        {property.realEstatePropertyBedrooms && (
+                            <div class="spec-card">
+                                <span class="spec-label">Dormitorios</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
+                                    {property.realEstatePropertyBedrooms}
+                                </span>
+                            </div>
+                        )}
+                        {property.realEstatePropertyBathrooms && (
+                            <div class="spec-card">
+                                <span class="spec-label">Baños</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7c0-1.1.9-2 2-2s2 .9 2 2H7zm11 6H6v5h12v-5zm0-2c.55 0 1 .45 1 1v7c0 .55-.45 1-1 1H6c-.55 0-1-.45-1-1v-7c0-.55.45-1 1-1h12z"/></svg>
+                                    {property.realEstatePropertyBathrooms}
+                                </span>
+                            </div>
+                        )}
+                        {property.realEstatePropertyGarage && (
+                            <div class="spec-card">
+                                <span class="spec-label">Estacionamientos</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z"/></svg>
+                                    {property.realEstatePropertyGarage}
+                                </span>
+                            </div>
+                        )}
+                        {property.realEstatePropertyStorageRooms && (
+                            <div class="spec-card">
+                                <span class="spec-label">Bodegas</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1 0-2 .9-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1.1-1-2-2-2z"/></svg>
+                                    {property.realEstatePropertyStorageRooms}
+                                </span>
+                            </div>
+                        )}
+                        {property.realEstatePropertyConstructionYear && (
+                            <div class="spec-card">
+                                <span class="spec-label">Año construcción</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                                    {property.realEstatePropertyConstructionYear}
+                                </span>
+                            </div>
+                        )}
+                        {property.realEstatePropertyCommonExpenses && (
+                            <div class="spec-card">
+                                <span class="spec-label">Gastos comunes</span>
+                                <span class="spec-value">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+                                    $ {parseInt(property.realEstatePropertyCommonExpenses).toLocaleString('es-CL')}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div class={`price-card ${!isAvailable ? 'price-card-disabled' : ''}`} id="priceCard">
+                        <div class="price-accent"></div>
+                        <div class="price-value">
+                            <span class="main-price">{formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit)}</span>
+                        </div>
+                        <div class="price-cta-wrapper">
+                            {isAvailable ? (
+                                <>
+                                    <a href="javascript:void(0)" onclick="openContactModal()" class="price-cta">
+                                        Consultar
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </a>
+                                    <a href={`https://wa.me/56912345678?text=${encodeURIComponent('Hola, me interesa la propiedad: ' + property.title)}`} target="_blank" class="whatsapp-btn">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                    </a>
+                                </>
+                            ) : (
+                                <span class="price-cta-disabled">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg>
+                                    {disabledMessage}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Two Column Layout -->
+            <div class="content-grid pt-5 border-t mt-5 border-gray-100">
+                <div class="content-main">
+                    <!-- Description -->
+                    {property.content && (
+                        <div class="section-block">
+                            <h2 class="section-title">Descripción</h2>
+                            <div class="description-content" set:html={property.content} />
+                        </div>
+                    )}
+                    
+                    <!-- Quick Summary / Resumen Rápido -->
+                    {hasFlags && (
+                        <div class="section-block">
+                            <h2 class="section-title">Resumen rápido</h2>
+                            <div class="details-grid" id="quickSummaryGrid">
+                                {flagConfig.map((flag, idx) => {
+                                    const value = (property as any)[flag.key];
+                                    const isTrue = value === '1' || value === 'yes' || value === 'true' || value === true || value === 1;
+                                    const isHidden = idx >= 10;
+                                    return (
+                                        <div class={`detail-row ${isHidden ? 'detail-hidden' : ''}`}>
+                                            <span class="detail-label">{flag.label}</span>
+                                            <span class={`detail-value ${isTrue ? 'value-yes' : 'value-no'}`}>
+                                                {isTrue ? 'Sí' : 'No'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {flagConfig.length > 10 && (
+                                <div class="summary-toggle-wrapper">
+                                    <button class="summary-toggle" id="quickSummaryToggle">
+                                        <span class="toggle-text-more">Ver más</span>
+                                        <span class="toggle-text-less" style="display: none;">Ver menos</span>
+                                        <svg class="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    
+                    <!-- Features -->
+                    {features.length > 0 && (
+                        <div class="section-block">
+                            <h2 class="section-title">Características</h2>
+                            <div class="features-grid">
+                                {features.map((f: any) => (
+                                    <span class="feature-tag">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                        {f.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
+                    <!-- Map -->
+                    {hasLocation && (
+                        <div class="section-block">
+                            <h2 class="section-title">Ubicación</h2>
+                            <div id="propertyMap" class="property-map"></div>
+                        </div>
+                    )}
+                    
+                    <!-- Video -->
+                    {property.realEstatePropertyVideoUrl && (
+                        <div class="section-block">
+                            <h2 class="section-title">Video</h2>
+                            <div class="video-container">
+                                {property.realEstatePropertyVideoUrl.includes('youtube') ? (
+                                    <iframe 
+                                        src={`https://www.youtube.com/embed/${property.realEstatePropertyVideoUrl.split('v=')[1]?.split('&')[0]}`}
+                                        title="Video de la propiedad"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen
+                                    ></iframe>
+                                ) : property.realEstatePropertyVideoUrl.includes('vimeo') ? (
+                                    <iframe 
+                                        src={`https://player.vimeo.com/video/${property.realEstatePropertyVideoUrl.split('/').pop()}`}
+                                        title="Video de la propiedad"
+                                        allow="autoplay; fullscreen; picture-in-picture"
+                                        allowfullscreen
+                                    ></iframe>
+                                ) : (
+                                    <a href={property.realEstatePropertyVideoUrl} target="_blank" class="video-link">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                        Ver Video
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    
+                    <!-- Floor Plans / Plantas -->
+                    {floors.length > 0 && (
+                        <div class="section-block">
+                            <h2 class="section-title">Plantas</h2>
+                            <div class="floor-tabs">
+                                <div class="floor-tab-buttons">
+                                    {floors.map((floor: any, idx: number) => (
+                                        <button 
+                                            class={`floor-tab-btn ${idx === 0 ? 'active' : ''}`}
+                                            data-floor-index={idx}
+                                        >
+                                            {floor.real_estate_floor_name || `Planta ${idx + 1}`}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div class="floor-tab-panels">
+                                    {floors.map((floor: any, idx: number) => (
+                                        <div class={`floor-panel ${idx === 0 ? 'active' : ''}`} data-floor-panel={idx}>
+                                            <div class="floor-panel-content">
+                                                <div class="floor-info">
+                                                    <div class="floor-details">
+                                                        {floor.real_estate_floor_size && (
+                                                            <div class="floor-detail">
+                                                                <span class="floor-detail-label">Tamaño</span>
+                                                                <span class="floor-detail-value">{floor.real_estate_floor_size} {floor.real_estate_floor_size_postfix || 'm²'}</span>
+                                                            </div>
+                                                        )}
+                                                        {floor.real_estate_floor_bedrooms && (
+                                                            <div class="floor-detail">
+                                                                <span class="floor-detail-label">Dormitorios</span>
+                                                                <span class="floor-detail-value">{floor.real_estate_floor_bedrooms}</span>
+                                                            </div>
+                                                        )}
+                                                        {floor.real_estate_floor_bathrooms && (
+                                                            <div class="floor-detail">
+                                                                <span class="floor-detail-label">Baños</span>
+                                                                <span class="floor-detail-value">{floor.real_estate_floor_bathrooms}</span>
+                                                            </div>
+                                                        )}
+                                                        {floor.real_estate_floor_price && (
+                                                            <div class="floor-detail">
+                                                                <span class="floor-detail-label">Precio</span>
+                                                                <span class="floor-detail-value">{floor.real_estate_floor_price} {floor.real_estate_floor_price_postfix || ''}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {floor.real_estate_floor_description && (
+                                                        <p class="floor-description">{floor.real_estate_floor_description}</p>
+                                                    )}
+                                                </div>
+                                                {floor.real_estate_floor_image?.id && floor.real_estate_floor_image.id !== '0' && (
+                                                    <div class="floor-image-small">
+                                                        <img src={floor.real_estate_floor_image.url || `https://valenciapro.local/wp-content/uploads/${floor.real_estate_floor_image.id}`} alt={floor.real_estate_floor_name || 'Plano'} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                
+                <div class="content-sidebar" id="contact">
+                    <div class="contact-card">
+                        <h3>¿Te interesa esta propiedad?</h3>
+                        <p>Contáctanos para más información o agendar una visita.</p>
+                        <form class="contact-form">
+                            <input type="text" placeholder="Nombre" required />
+                            <input type="email" placeholder="Email" required />
+                            <input type="tel" placeholder="Teléfono" />
+                            <textarea placeholder="Mensaje" rows="4"></textarea>
+                            <button type="submit">Enviar consulta</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </section>
+    
+    <!-- Lightbox Modal -->
+    <div class="lightbox-overlay" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+        </button>
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Anterior">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Siguiente">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+            </svg>
+        </button>
+        <div class="lightbox-content">
+            <img id="lightboxImage" src="" alt="" />
+            <div class="lightbox-counter" id="lightboxCounter"></div>
+        </div>
+        <div class="lightbox-thumbnails" id="lightboxThumbnails">
+            {property.featuredImage?.node?.sourceUrl && (
+                <div class="lightbox-thumb" data-index="0">
+                    <img src={property.featuredImage.node.sourceUrl} alt="Thumbnail" loading="lazy" />
+                </div>
+            )}
+            {galleryImages.map((img: string, i: number) => (
+                <div class="lightbox-thumb" data-index={i + 1}>
+                    <img src={img} alt={`Thumbnail ${i + 2}`} loading="lazy" />
+                </div>
+            ))}
+        </div>
+    </div>
+    <!-- Modal de Contacto -->
+    <div id="contactModal" class="valencia-modal-overlay" onclick="closeContactModal(event)">
+        <div class="valencia-modal" onclick="event.stopPropagation()">
+            <button type="button" class="valencia-modal-close" onclick="closeContactModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <div class="valencia-modal-header">
+                <div class="valencia-modal-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
+                </div>
+                <h3>Consultar sobre esta propiedad</h3>
+                <p>{property.title}</p>
+            </div>
+            <form class="valencia-modal-form" id="contactModalForm" onsubmit="submitContactForm(event)">
+                <input type="hidden" name="property_id" value={property.databaseId} />
+                <input type="hidden" name="property_title" value={property.title} />
+                <div class="valencia-form-row">
+                    <div class="valencia-form-group">
+                        <label>Nombre *</label>
+                        <input type="text" name="name" required placeholder="Tu nombre" />
+                    </div>
+                    <div class="valencia-form-group">
+                        <label>Apellido *</label>
+                        <input type="text" name="lastname" required placeholder="Tu apellido" />
+                    </div>
+                </div>
+                <div class="valencia-form-row">
+                    <div class="valencia-form-group">
+                        <label>Correo *</label>
+                        <input type="email" name="email" required placeholder="correo@ejemplo.com" />
+                    </div>
+                    <div class="valencia-form-group">
+                        <label>Teléfono *</label>
+                        <input type="tel" name="phone" required placeholder="+56 9 1234 5678" />
+                    </div>
+                </div>
+                <div class="valencia-form-group">
+                    <label>Mensaje</label>
+                    <textarea name="message" rows="4" placeholder="Hola, me interesa esta propiedad..."></textarea>
+                </div>
+                
+                <!-- Cloudflare Turnstile -->
+                <div class="valencia-turnstile-wrapper" style="margin-bottom: 16px;">
+                    <div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-callback="onTurnstileSuccess" data-theme="light"></div>
+                    <input type="hidden" name="cf-turnstile-response" id="cf-turnstile-response" />
+                </div>
+                
+                <button type="submit" class="valencia-modal-submit" id="contactSubmitBtn" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Enviar consulta
+                </button>
+            </form>
+            <div class="valencia-modal-footer">
+                <p><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Tu información está protegida</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Styles for Modal -->
+    <style>
+    .valencia-modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:99999;justify-content:center;align-items:center;padding:20px;opacity:0;transition:opacity .3s}
+    .valencia-modal-overlay.active{display:flex;opacity:1}
+    .valencia-modal{background:#fff;border-radius:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;position:relative;transform:translateY(20px);transition:transform .3s;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)}
+    .valencia-modal-overlay.active .valencia-modal{transform:translateY(0)}
+    .valencia-modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border:none;background:#f3f4f6;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;transition:all .2s;z-index:10}
+    .valencia-modal-close:hover{background:#e5e7eb;color:#374151}
+    .valencia-modal-header{text-align:center;padding:32px 32px 24px;border-bottom:1px solid #f3f4f6}
+    .valencia-modal-icon{width:64px;height:64px;background:linear-gradient(135deg,#bfb37b,#d4c994);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;}
+    .valencia-modal-header h3{font-size:20px;font-weight:700;color:#111827;margin:0 0 8px}
+    .valencia-modal-header p{font-size:14px;color:#6b7280;margin:0 auto;max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .valencia-modal-form{padding:24px 32px}
+    .valencia-form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .valencia-form-group{margin-bottom:16px}
+    .valencia-form-group label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+    .valencia-form-group input,.valencia-form-group textarea{width:100%;padding:12px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px;color:#111827;transition:all .2s;background:#f9fafb}
+    .valencia-form-group input:focus,.valencia-form-group textarea:focus{outline:none;border-color:#bfb37b;background:#fff;box-shadow:0 0 0 3px rgba(191,179,123,0.1)}
+    .valencia-form-group textarea{resize:vertical;min-height:100px}
+    .valencia-modal-submit{width:100%;padding:14px 24px;background:linear-gradient(135deg,#bfb37b,#a89b5c);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;margin-top:8px}
+    .valencia-modal-submit:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(191,179,123,0.4)}
+    .valencia-modal-footer{padding:16px 32px 24px;text-align:center}
+    .valencia-modal-footer p{font-size:12px;color:#9ca3af;margin:0;display:flex;align-items:center;justify-content:center;gap:6px}
+    .valencia-modal-success{text-align:center;padding:48px 32px}
+    .valencia-modal-success h4{font-size:20px;font-weight:700;color:#111827;margin:0 0 8px}
+    .valencia-modal-success p{font-size:14px;color:#6b7280;margin:0}
+    @media(max-width:640px){.valencia-form-row{grid-template-columns:1fr}.valencia-modal-form,.valencia-modal-header{padding-left:20px;padding-right:20px}}
+    .valencia-modal-submit:disabled{background:#d1d5db;cursor:not-allowed;transform:none}
+    .valencia-modal-submit:disabled:hover{box-shadow:none;transform:none}
+    .cf-turnstile{display:flex;justify-content:center}
+    </style>
+    <!-- Turnstile Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</Layout>
+
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+
+<script define:vars={{ lat, lng, hasLocation, mapboxToken, propertyTitle: property.title, apiUrl, turnstileSiteKey }}>
+    // Sticky bar logic
+    const priceCard = document.getElementById('priceCard');
+    const stickyBar = document.getElementById('stickyBar');
+    
+    if (priceCard && stickyBar) {
+        window.addEventListener('scroll', () => {
+            const rect = priceCard.getBoundingClientRect();
+            if (rect.bottom < 0) {
+                stickyBar.classList.add('show');
+            } else {
+                stickyBar.classList.remove('show');
+            }
+        }, { passive: true });
+    }
+    
+    // Map initialization
+    if (hasLocation) {
+        async function initMap() {
+            if (!window.mapboxgl) {
+                const script = document.createElement('script');
+                script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+                document.head.appendChild(script);
+                await new Promise(resolve => script.onload = resolve);
+            }
+            
+            window.mapboxgl.accessToken = mapboxToken;
+            
+            const map = new window.mapboxgl.Map({
+                container: 'propertyMap',
+                style: 'mapbox://styles/mapbox/light-v11',
+                center: [lng, lat],
+                zoom: 15
+            });
+            
+            map.addControl(new window.mapboxgl.NavigationControl(), 'top-right');
+            
+            const el = document.createElement('div');
+            el.className = 'property-marker';
+            el.innerHTML = '<div class="marker-inner"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>';
+            
+            new window.mapboxgl.Marker(el)
+                .setLngLat([lng, lat])
+                .addTo(map);
+        }
+        
+        initMap();
+    }
+</script>
+
+<script define:vars={{ allImages: [property.featuredImage?.node?.sourceUrl, ...galleryImages].filter(Boolean) }}>
+    // Lightbox functionality
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightboxImage');
+    const lightboxCounter = document.getElementById('lightboxCounter');
+    const lightboxClose = document.getElementById('lightboxClose');
+    const lightboxPrev = document.getElementById('lightboxPrev');
+    const lightboxNext = document.getElementById('lightboxNext');
+    const showPhotosBtn = document.getElementById('showPhotosBtn');
+    
+    let currentIndex = 0;
+    const images = allImages;
+    
+    function openLightbox(index = 0) {
+        currentIndex = index;
+        updateLightboxImage();
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeLightbox() {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    function updateLightboxImage() {
+        lightboxImage.src = images[currentIndex];
+        lightboxCounter.textContent = `${currentIndex + 1} / ${images.length}`;
+        
+        // Update active thumbnail
+        document.querySelectorAll('.lightbox-thumb').forEach((thumb, i) => {
+            thumb.classList.toggle('active', i === currentIndex);
+        });
+        
+        // Scroll thumbnail into view
+        const activeThumb = document.querySelector('.lightbox-thumb.active');
+        if (activeThumb) {
+            activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+    }
+    
+    function nextImage() {
+        currentIndex = (currentIndex + 1) % images.length;
+        updateLightboxImage();
+    }
+    
+    function prevImage() {
+        currentIndex = (currentIndex - 1 + images.length) % images.length;
+        updateLightboxImage();
+    }
+    
+    // Event listeners
+    if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+    if (lightboxPrev) lightboxPrev.addEventListener('click', prevImage);
+    if (lightboxNext) lightboxNext.addEventListener('click', nextImage);
+    if (showPhotosBtn) showPhotosBtn.addEventListener('click', () => openLightbox(0));
+    
+    // Click on gallery images to open lightbox
+    document.querySelectorAll('.gallery-item').forEach((item, index) => {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', () => openLightbox(index));
+    });
+    
+    // Click on thumbnails to jump to that image
+    document.querySelectorAll('.lightbox-thumb').forEach((thumb) => {
+        thumb.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = parseInt(thumb.getAttribute('data-index') || '0');
+            currentIndex = index;
+            updateLightboxImage();
+        });
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (!lightbox.classList.contains('active')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowRight') nextImage();
+        if (e.key === 'ArrowLeft') prevImage();
+    });
+    
+    // Close on overlay click
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) closeLightbox();
+    });
+    
+    // Quick Summary Toggle
+    const quickSummaryToggle = document.getElementById('quickSummaryToggle');
+    const quickSummaryGrid = document.getElementById('quickSummaryGrid');
+    
+    if (quickSummaryToggle && quickSummaryGrid) {
+        quickSummaryToggle.addEventListener('click', function() {
+            const isExpanded = quickSummaryGrid.classList.toggle('expanded');
+            const textMore = quickSummaryToggle.querySelector('.toggle-text-more');
+            const textLess = quickSummaryToggle.querySelector('.toggle-text-less');
+            const icon = quickSummaryToggle.querySelector('.toggle-icon');
+            
+            if (isExpanded) {
+                if (textMore) textMore.style.display = 'none';
+                if (textLess) textLess.style.display = 'inline';
+                if (icon) icon.style.transform = 'rotate(180deg)';
+            } else {
+                if (textMore) textMore.style.display = 'inline';
+                if (textLess) textLess.style.display = 'none';
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        });
+    }
+    
+    // Floor Tabs
+    const floorTabBtns = document.querySelectorAll('.floor-tab-btn');
+    const floorPanels = document.querySelectorAll('.floor-panel');
+    
+    floorTabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = this.getAttribute('data-floor-index');
+            
+            // Remove active from all
+            floorTabBtns.forEach(b => b.classList.remove('active'));
+            floorPanels.forEach(p => p.classList.remove('active'));
+            
+            // Add active to clicked
+            this.classList.add('active');
+            const panel = document.querySelector(`[data-floor-panel="${index}"]`);
+            if (panel) panel.classList.add('active');
+        });
+    });
+    }); // End floorTabBtns
+
+    // --- Contact Modal Logic ---
+    window.onTurnstileSuccess = function(token) {
+        document.getElementById('cf-turnstile-response').value = token;
+        const btn = document.getElementById('contactSubmitBtn');
+        if(btn) btn.disabled = false;
+    };
+
+    window.openContactModal = function() {
+        const m = document.getElementById('contactModal');
+        if(m) {
+            m.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            // Trigger reflow
+            m.offsetHeight; 
+            m.classList.add('active');
+        }
+    };
+
+    window.closeContactModal = function(e) {
+        if(e && e.target !== e.currentTarget) return;
+        const m = document.getElementById('contactModal');
+        if(m) {
+            m.classList.remove('active');
+            setTimeout(() => {
+                m.style.display = 'none';
+                document.body.style.overflow = '';
+            }, 300);
+            if(window.turnstile) window.turnstile.reset();
+        }
+    };
+
+    window.submitContactForm = function(e) {
+        e.preventDefault();
+        const f = e.target;
+        const b = document.getElementById('contactSubmitBtn');
+        const turnstileToken = document.getElementById('cf-turnstile-response').value;
+        
+        if(!turnstileToken){
+            alert('Por favor completa la verificación de seguridad');
+            return;
+        }
+        
+        const originalText = b.innerHTML;
+        b.innerHTML = 'Enviando...';
+        b.disabled = true;
+        
+        const fd = new FormData(f);
+        const data = {
+            contact_name: fd.get('name') + ' ' + fd.get('lastname'),
+            contact_email: fd.get('email'),
+            contact_phone: fd.get('phone'),
+            contact_message: fd.get('message') || '',
+            'cf-turnstile-response': turnstileToken,
+            property_title: propertyTitle
+        };
+        
+        fetch(`${apiUrl}/wp-json/valencia/v1/send-contact`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(res => {
+            if(res.success){
+                 f.parentElement.innerHTML = '<div class="valencia-modal-success" style="text-align:center;padding:40px;"><h4 style="font-size:24px;margin-bottom:10px;">¡Consulta enviada!</h4><p>Nos pondremos en contacto contigo pronto.</p><button type="button" onclick="closeContactModal()" style="margin-top:20px;padding:10px 20px;background:#bfb37b;color:white;border:none;border-radius:8px;cursor:pointer;">Cerrar</button></div>';
+            } else {
+                alert('Error: ' + (res.message || 'Error desconocido'));
+                b.innerHTML = originalText;
+                b.disabled = false;
+                if(window.turnstile) window.turnstile.reset();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error de conexión');
+            b.innerHTML = originalText;
+            b.disabled = false;
+        });
+    };
+</script>

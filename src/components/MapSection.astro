@@ -1,0 +1,418 @@
+---
+interface Props {
+    height?: string;
+    zoom?: number;
+    centerLat?: number;
+    centerLng?: number;
+    limit?: number;
+    title?: string;
+    subtitle?: string;
+}
+
+const {
+    height = "600px",
+    zoom = 11,
+    centerLat = -33.4489,
+    centerLng = -70.6693,
+    limit = -1,
+    title = "Explora nuestras propiedades",
+    subtitle = "Encuentra tu próximo hogar en el mapa interactivo"
+} = Astro.props;
+
+const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
+const mapboxToken = 'pk.eyJ1Ijoiam9zYmVydCIsImEiOiJjbWlzYmR0b3MxN3RnM2hvYnFuZzYzeHhrIn0.IcQTlfA5pb6QtSL7TsUX5A';
+const mapId = `mapbox_${Date.now()}`;
+---
+
+<section class="map-section">
+    <div class=" mx-auto px-4 lg:px-8">
+        <!-- Header -->
+        <div class="map-header">
+            <span class="map-kicker">
+                <span class="kicker-line"></span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                Ubicaciones
+                <span class="kicker-line"></span>
+            </span>
+            <h2 class="map-title">{title}</h2>
+            <p class="map-subtitle">{subtitle}</p>
+        </div>
+
+        <!-- Map Container -->
+        <div id={mapId} class="map-container" style={`height: ${height};`}></div>
+    </div>
+</section>
+
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+
+<script define:vars={{ apiUrl, mapboxToken, mapId, zoom, centerLat, centerLng, limit }}>
+    async function initMap() {
+        // Load Mapbox GL JS
+        if (!window.mapboxgl) {
+            const script = document.createElement('script');
+            script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+            document.head.appendChild(script);
+            await new Promise(resolve => script.onload = resolve);
+        }
+
+        // Fetch properties
+        const queryLimit = limit === -1 ? 100 : limit;
+        const response = await fetch(`${apiUrl}/graphql`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `{
+                    properties(first: ${queryLimit}) {
+                        nodes {
+                            title
+                            uri
+                            featuredImage {
+                                node {
+                                    sourceUrl
+                                }
+                            }
+                            realEstatePropertyAddress
+                            realEstatePropertyBedrooms
+                            realEstatePropertyBathrooms
+                            realEstatePropertySize
+                            realEstatePropertyPriceShort
+                            valenciaPriceUnit
+                            realEstatePropertyLocation
+                        }
+                    }
+                }`
+            })
+        });
+
+        const { data } = await response.json();
+        const properties = data?.properties?.nodes || [];
+
+        // Initialize map
+        window.mapboxgl.accessToken = mapboxToken;
+
+        const map = new window.mapboxgl.Map({
+            container: mapId,
+            style: 'mapbox://styles/mapbox/light-v11',
+            center: [centerLng, centerLat],
+            zoom: zoom
+        });
+
+        map.addControl(new window.mapboxgl.NavigationControl(), 'top-right');
+
+        const bounds = new window.mapboxgl.LngLatBounds();
+        let hasValidCoords = false;
+
+        properties.forEach(property => {
+            const location = property.realEstatePropertyLocation;
+            if (!location) return;
+
+            let lat, lng;
+            
+            // Parse location string
+            if (typeof location === 'string' && location.includes(',')) {
+                const coords = location.split(',');
+                if (coords.length >= 2) {
+                    lat = parseFloat(coords[0].trim());
+                    lng = parseFloat(coords[1].trim());
+                }
+            } else if (typeof location === 'object' && location.location) {
+                const coords = location.location.split(',');
+                if (coords.length >= 2) {
+                    lat = parseFloat(coords[0].trim());
+                    lng = parseFloat(coords[1].trim());
+                }
+            }
+
+            if (!lat || !lng || isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+
+            hasValidCoords = true;
+            bounds.extend([lng, lat]);
+
+            // Create marker element
+            const el = document.createElement('div');
+            el.className = 'custom-marker';
+            el.innerHTML = `
+                <div class="marker-inner">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                </div>
+            `;
+
+            // Format price
+            const price = property.realEstatePropertyPriceShort;
+            const unit = property.valenciaPriceUnit;
+            const formattedPrice = price 
+                ? (unit === 'UF' ? `UF ${price}` : `$ ${parseInt(price).toLocaleString('es-CL')}`)
+                : '';
+
+            // Popup HTML
+            const popupHTML = `
+                <div class="popup-content">
+                    ${property.featuredImage?.node?.sourceUrl ? 
+                        `<div class="popup-image">
+                            <img src="${property.featuredImage.node.sourceUrl}" alt="${property.title}" />
+                        </div>` : ''
+                    }
+                    <div class="popup-body">
+                        ${property.realEstatePropertyAddress ? 
+                            `<p class="popup-address">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                                </svg>
+                                ${property.realEstatePropertyAddress}
+                            </p>` : ''
+                        }
+                        <h4 class="popup-title">${property.title}</h4>
+                        <div class="popup-features">
+                            ${property.realEstatePropertyBedrooms ? `<span class="popup-feature"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg> ${property.realEstatePropertyBedrooms} Hab</span>` : ''}
+                            ${property.realEstatePropertyBathrooms ? `<span class="popup-feature"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7c0-1.1.9-2 2-2s2 .9 2 2H7zm5.6-3.6c-.4-.4-.9-.6-1.4-.6s-1 .2-1.4.6l-1.5 1.5c-.8.8-.8 2.1 0 2.8l.7.7-1.4 1.4.7.7 5.7-5.7-.7-.7 1.4-1.4-.7-.7-1.4 1.4zM7 9c-.6 0-1 .4-1 1v1h12v-1c0-.6-.4-1-1-1H7zm11 5H6v7h12v-7z"/></svg> ${property.realEstatePropertyBathrooms} Baño</span>` : ''}
+                            ${property.realEstatePropertySize ? `<span class="popup-feature"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg> ${property.realEstatePropertySize} m²</span>` : ''}
+                        </div>
+                        ${formattedPrice ? `<p class="popup-price">${formattedPrice}</p>` : ''}
+                        <a href="${property.uri}" class="popup-link">
+                            Ver detalles
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            const popup = new window.mapboxgl.Popup({
+                offset: 35,
+                closeButton: true,
+                maxWidth: '320px'
+            }).setHTML(popupHTML);
+
+            new window.mapboxgl.Marker(el)
+                .setLngLat([lng, lat])
+                .setPopup(popup)
+                .addTo(map);
+        });
+
+        if (hasValidCoords && !bounds.isEmpty()) {
+            map.fitBounds(bounds, { 
+                padding: { top: 80, bottom: 80, left: 80, right: 80 }, 
+                maxZoom: 14 
+            });
+        }
+    }
+
+    initMap();
+</script>
+
+<style>
+    .map-section {
+        padding: 100px 0;
+        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    }
+
+    .map-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .map-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #bfb37b;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 16px;
+    }
+
+    .kicker-line {
+        width: 30px;
+        height: 2px;
+        background: #bfb37b;
+    }
+
+    .map-title {
+        font-size: 36px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0 0 12px;
+        line-height: 1.2;
+    }
+
+    .map-subtitle {
+        font-size: 16px;
+        color: #636e72;
+        margin: 0 auto;
+        max-width: 500px;
+    }
+
+    .map-container {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Custom Marker */
+    :global(.custom-marker) {
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :global(.marker-inner) {
+        width: 44px;
+        height: 44px;
+        background: #bfb37b;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(191, 179, 123, 0.4);
+        border: 3px solid #fff;
+        transition: all 0.2s ease;
+        color: #fff;
+    }
+
+    :global(.custom-marker:hover .marker-inner) {
+        background: #d4c99a;
+        box-shadow: 0 6px 20px rgba(191, 179, 123, 0.6);
+        transform: scale(1.1);
+    }
+
+    /* Popup Styles */
+    :global(.mapboxgl-popup-content) {
+        padding: 0 !important;
+       
+        overflow: hidden;
+    }
+
+    :global(.mapboxgl-popup-close-button) {
+        font-size: 24px;
+        color: #fff;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        right: 8px;
+        top: 8px;
+    }
+
+    :global(.mapboxgl-popup-close-button:hover) {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    :global(.mapboxgl-popup-tip) {
+        display: none;
+    }
+
+    :global(.popup-content) {
+        min-width: 280px;
+    }
+
+    :global(.popup-image) {
+        height: 180px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    :global(.popup-image img) {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    :global(.popup-body) {
+        padding: 16px;
+    }
+
+    :global(.popup-address) {
+        margin: 0 0 8px;
+        font-size: 12px;
+        color: #636e72;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    :global(.popup-address svg) {
+        color: #bfb37b;
+    }
+
+    :global(.popup-title) {
+        margin: 0 0 12px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #2d3436;
+        line-height: 1.3;
+    }
+
+    :global(.popup-features) {
+        display: flex;
+        gap: 16px;
+        margin: 12px 0;
+        padding: 12px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+        flex-wrap: wrap;
+    }
+
+    :global(.popup-feature) {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #636e72;
+    }
+
+    :global(.popup-feature svg) {
+        color: #bfb37b;
+    }
+
+    :global(.popup-price) {
+        margin: 12px 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #bfb37b;
+    }
+
+    :global(.popup-link) {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #bfb37b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 10px 20px;
+        background: rgba(191, 179, 123, 0.1);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        width: 100%;
+        justify-content: center;
+    }
+
+    :global(.popup-link:hover) {
+        background: #bfb37b;
+        color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .map-title {
+            font-size: 28px;
+        }
+
+        .map-section {
+            padding: 60px 0;
+        }
+    }
+</style>

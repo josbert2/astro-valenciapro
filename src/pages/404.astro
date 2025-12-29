@@ -1,0 +1,325 @@
+---
+import Layout from '../layouts/main.astro';
+
+// Custom SEO for 404 - noindex, nofollow
+const seoConfig = {
+    noindex: true,
+    nofollow: true
+};
+---
+
+<Layout title="Página no encontrada | Valencia Pro" description="Lo sentimos, la página que buscas no existe o ha sido movida.">
+    <meta slot="head" name="robots" content="noindex, nofollow" />
+    
+    <section class="error-page">
+        <div class="container">
+            <!-- Decorative Elements -->
+            <div class="decorative-circles">
+                <div class="circle circle-1"></div>
+                <div class="circle circle-2"></div>
+                <div class="circle circle-3"></div>
+            </div>
+            
+            <div class="error-content">
+                <!-- 404 Number with House Icon -->
+                <div class="error-number">
+                    <span class="num">4</span>
+                    <div class="house-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15"/>
+                        </svg>
+                    </div>
+                    <span class="num">4</span>
+                </div>
+                
+                <h1 class="error-title">¡Oops! Página no encontrada</h1>
+                
+                <p class="error-desc">
+                    Parece que esta propiedad ya fue vendida, arrendada o la página que buscas no existe. 
+                    ¡No te preocupes! Tenemos muchas otras opciones esperándote.
+                </p>
+                
+                <div class="error-actions">
+                    <a href="/" class="btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5 5.5 21 6 21H9M19 10L21 12M19 10V20C19 20.5 18.5 21 18 21H15M9 21V16C9 15.5 9.5 15 10 15H14C14.5 15 15 15.5 15 16V21M9 21H15"/>
+                        </svg>
+                        Volver al inicio
+                    </a>
+                    <a href="/propiedades" class="btn-secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        Ver propiedades
+                    </a>
+                </div>
+                
+                <!-- Helpful Links -->
+                <div class="helpful-links">
+                    <p class="links-title">¿Buscabas algo específico?</p>
+                    <div class="links-grid">
+                        <a href="/propiedades?operation=venta">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5 5.5 21 6 21H9M19 10L21 12M19 10V20C19 20.5 18.5 21 18 21H15M9 21V16C9 15.5 9.5 15 10 15H14C14.5 15 15 15.5 15 16V21M9 21H15"/></svg>
+                            Propiedades en venta
+                        </a>
+                        <a href="/propiedades?operation=arriendo">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                            Propiedades en arriendo
+                        </a>
+                        <a href="/servicios">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            Nuestros servicios
+                        </a>
+                        <a href="/contacto">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            Contactar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</Layout>
+
+<style>
+    .error-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        background: linear-gradient(135deg, #f9f9f9 0%, #fff 50%, rgba(191,179,123,0.05) 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* Decorative Circles */
+    .decorative-circles {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .circle {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid rgba(191,179,123,0.15);
+    }
+
+    .circle-1 {
+        width: 400px;
+        height: 400px;
+        top: -150px;
+        right: -100px;
+    }
+
+    .circle-2 {
+        width: 300px;
+        height: 300px;
+        bottom: -100px;
+        left: -100px;
+        background: radial-gradient(circle, rgba(191,179,123,0.08) 0%, transparent 70%);
+    }
+
+    .circle-3 {
+        width: 150px;
+        height: 150px;
+        top: 20%;
+        left: 10%;
+        border-color: rgba(191,179,123,0.1);
+    }
+
+    /* Error Content */
+    .error-content {
+        text-align: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* 404 Number */
+    .error-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+
+    .num {
+        font-size: 8rem;
+        font-weight: 800;
+        color: #2d3436;
+        line-height: 1;
+        font-family: 'Lato', sans-serif;
+    }
+
+    .house-icon {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #bfb37b 0%, #a89b5c 100%);
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .house-icon svg {
+        width: 60px;
+        height: 60px;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    /* Title */
+    .error-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2d3436;
+        margin-bottom: 20px;
+    }
+
+    /* Description */
+    .error-desc {
+        font-size: 1.1rem;
+        color: #636e72;
+        line-height: 1.7;
+        max-width: 550px;
+        margin: 0 auto 40px;
+    }
+
+    /* Actions */
+    .error-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 50px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 32px;
+        border-radius: 60px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #2d3436;
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        background: #bfb37b;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(191,179,123,0.3);
+    }
+
+    .btn-secondary {
+        background: #fff;
+        color: #2d3436;
+        border: 2px solid #e0e0e0;
+    }
+
+    .btn-secondary:hover {
+        border-color: #bfb37b;
+        color: #bfb37b;
+        transform: translateY(-3px);
+    }
+
+    /* Helpful Links */
+    .helpful-links {
+        background: #fff;
+        border-radius: 24px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+    }
+
+    .links-title {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #b2bec3;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    .links-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .links-grid a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: #f9f9f9;
+        border-radius: 12px;
+        color: #2d3436;
+        text-decoration: none;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+
+    .links-grid a:hover {
+        background: rgba(191,179,123,0.1);
+        color: #bfb37b;
+        transform: translateX(5px);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .num {
+            font-size: 5rem;
+        }
+
+        .house-icon {
+            width: 70px;
+            height: 70px;
+        }
+
+        .house-icon svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+        }
+
+        .links-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .error-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>

@@ -1,0 +1,857 @@
+---
+import Layout from '../layouts/main.astro';
+
+const url = new URL(Astro.request.url);
+const interes = url.searchParams.get('interes') || '';
+
+// Fetch property count from GraphQL
+const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
+
+let availableCount = 0;
+let availableLabel = 'Propiedades Disponibles';
+
+try {
+    const response = await fetch(`${apiUrl}/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            query: `{
+                properties(first: 100) {
+                    nodes {
+                        databaseId
+                    }
+                }
+            }`
+        })
+    });
+    
+    if (response.ok) {
+        const data = await response.json();
+        const properties = data?.data?.properties?.nodes || [];
+        availableCount = properties.length;
+        availableLabel = 'Propiedades Disponibles';
+    }
+} catch (e) {
+    console.error('Error fetching properties count:', e);
+}
+---
+
+<Layout title="Contacto | Valencia Pro" description="Contáctanos para consultas sobre propiedades en venta, arriendo, administración o tasación. Estamos para ayudarte.">
+    <div class="valencia-contact-wrapper">
+        
+        <!-- Hero Header -->
+        <div class="valencia-pro-hero">
+            <div class="valencia-hero-inner">
+                <div class="valencia-hero-left">
+                    <h1 class="valencia-hero-title">Contáctanos</h1>
+                    <div class="valencia-breadcrumbs">
+                        Valencia Pro <span style="margin: 0 8px;">•</span> <span>Contacto</span>
+                    </div>
+                </div>
+                <div class="valencia-hero-right">
+                    <p class="valencia-hero-desc">
+                        Estoy aquí para ayudarte a encontrar el hogar perfecto o la mejor oportunidad de inversión inmobiliaria.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content (Overlap) -->
+        <div class="valencia-main-container">
+            
+            <!-- Columna Izquierda: Info -->
+            <div class="valencia-info-col">
+                <h3>Estamos aquí para ayudarte</h3>
+                <p>¿Tienes preguntas o quieres agendar una visita? Encuéntranos en nuestras oficinas o envíanos un mensaje directo.</p>
+                
+                <div class="valencia-contact-list">
+                    <div class="valencia-contact-card">
+                        <div class="valencia-icon-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                        <div class="valencia-card-details">
+                            <h5>Dirección</h5>
+                            <div>Suarez Mujica # 420<br/>Ñuñoa</div>
+                        </div>
+                    </div>
+                    
+                    <div class="valencia-contact-card">
+                        <div class="valencia-icon-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        </div>
+                        <div class="valencia-card-details">
+                            <h5>Teléfono</h5>
+                            <a href="tel:+56993373237">(+56) 9 9337 32 37</a>
+                        </div>
+                    </div>
+                    
+                    <div class="valencia-contact-card">
+                        <div class="valencia-icon-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </div>
+                        <div class="valencia-card-details">
+                            <h5>Email</h5>
+                            <a href="mailto:contacto@valenciapro.cl">contacto@valenciapro.cl</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Formulario -->
+            <div class="valencia-form-col">
+                <form id="contactForm">
+                    <div class="valencia-form-grid-inner">
+                        <div>
+                            <label class="valencia-label">Nombre</label>
+                            <input type="text" name="contact_name" class="valencia-input" placeholder="Tu nombre" required />
+                        </div>
+                        <div>
+                            <label class="valencia-label">Email</label>
+                            <input type="email" name="contact_email" class="valencia-input" placeholder="tucorreo@ejemplo.com" required />
+                        </div>
+                        
+                        <div>
+                            <label class="valencia-label">Teléfono</label>
+                            <input type="tel" name="contact_phone" class="valencia-input" placeholder="+56 9..." />
+                        </div>
+                        <div>
+                            <label class="valencia-label">Me interesa</label>
+                            <select name="contact_interest" class="valencia-select">
+                                <option value="">Selecciona una opción</option>
+                                <option value="comprar" selected={interes === 'comprar'}>Comprar una propiedad</option>
+                                <option value="vender" selected={interes === 'venta'}>Vender mi propiedad</option>
+                                <option value="arrendar" selected={interes === 'arriendo'}>Arrendar</option>
+                                <option value="administracion" selected={interes === 'administracion'}>Administración</option>
+                                <option value="tasacion" selected={interes === 'tasacion'}>Tasación</option>
+                                <option value="legal" selected={interes === 'legal'}>Asesoría legal</option>
+                                <option value="inversion" selected={interes === 'inversion'}>Proyectos de inversión</option>
+                                <option value="otro">Otra consulta</option>
+                            </select>
+                        </div>
+                        
+                        <div class="valencia-full-width">
+                            <label class="valencia-label">Mensaje</label>
+                            <textarea name="contact_message" class="valencia-textarea" placeholder="¿Cómo podemos ayudarte?" required></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Cloudflare Turnstile -->
+                    <div style="margin-bottom: 20px;">
+                        <div class="cf-turnstile" data-sitekey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY} data-theme="light"></div>
+                    </div>
+                    
+                    <button type="submit" class="valencia-submit-btn">
+                        Enviar Mensaje 
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- Bento Grid Stats Section -->
+        <div class="valencia-bento-container">
+            
+            <!-- Floating Shapes -->
+            <img src="https://bracketweb.com/zoomvilla-html/assets/images/shapes/about-shape-1-1.png" class="valencia-float-shape-left" alt="" />
+            <img src="https://bracketweb.com/zoomvilla-html/assets/images/shapes/about-shape-1-1.png" class="valencia-float-shape-right" alt="" />
+
+            <div class="valencia-bento-grid">
+                <!-- Left: Big Image -->
+                <div class="valencia-bento-left">
+                    <div class="valencia-corner-container">
+                        <div class="cornered-block">
+                            <div class="spaciaz-border-shape top-right"></div>
+                            <div class="spaciaz-border-shape bottom-left"></div>
+                        </div>
+                    </div>
+                    <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=1000&auto=format&fit=crop" class="valencia-large-image" alt="Edificio Valencia Pro" />
+                </div>
+                
+                <!-- Right: Stats Grid -->
+                <div class="valencia-bento-right">
+                    <div class="valencia-stat-card">
+                        <div class="valencia-stat-icon-wrapper">
+                            <img src="https://0284i2z2w3.ufs.sh/f/NcbcfBhcN02PpH9hXo3P2NW09JVUSE4Brvml3izq5Gsy7c8a" alt="Icono Stock" style="width: 50px; height: auto;" />
+                        </div>
+                        <div class="valencia-stat-content">
+                            <div class="valencia-stat-label">Stock Actual</div>
+                            <div class="valencia-stat-number">{availableCount}<span class="valencia-stat-plus">+</span></div>
+                            <div class="valencia-stat-desc">{availableLabel}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="valencia-stat-card">
+                        <div class="valencia-stat-icon-wrapper">
+                            <img src="https://0284i2z2w3.ufs.sh/f/NcbcfBhcN02PMCFw0hoq1A2e3FnyUCEvRKf4hpG6TJjkb9XS" alt="Icono Experiencia" style="width: 50px; height: auto;" />
+                        </div>
+                        <div class="valencia-stat-content">
+                            <div class="valencia-stat-label">Experiencia</div>
+                            <div class="valencia-stat-number">15<span class="valencia-stat-plus">+</span></div>
+                            <div class="valencia-stat-desc">Años en el mercado</div>
+                        </div>
+                    </div>
+                    
+                    <div class="valencia-stat-card">
+                        <div class="valencia-stat-icon-wrapper">
+                            <img src="https://0284i2z2w3.ufs.sh/f/NcbcfBhcN02PaHLZYNOjvg53MHZ4eBRd76PWJ2X9zAKGQiTO" alt="Icono Gestión" style="width: 50px; height: auto;" />
+                        </div>
+                        <div class="valencia-stat-content">
+                            <div class="valencia-stat-label">Gestión</div>
+                            <div class="valencia-stat-number">248<span class="valencia-stat-plus">+</span></div>
+                            <div class="valencia-stat-desc">Proyectos exitosos</div>
+                        </div>
+                    </div>
+                    
+                    <div class="valencia-mini-image-card">
+                        <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=800&auto=format&fit=crop" alt="Detalle Arquitectura" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="successModal" class="valencia-modal-overlay">
+            <div class="valencia-modal-content">
+                <div class="valencia-modal-icon">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h3 class="valencia-modal-title">¡Mensaje Enviado!</h3>
+                <p class="valencia-modal-msg">Gracias por contactarnos. Nuestro equipo se pondrá en contacto contigo a la brevedad.</p>
+                <button class="valencia-modal-close" id="closeModal">Cerrar</button>
+            </div>
+        </div>
+
+    </div>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</Layout>
+
+<style>
+    .valencia-contact-wrapper {
+        color: #2d3436;
+        background: #fff;
+    }
+
+    /* HERO SECTION */
+    .valencia-pro-hero {
+        position: relative;
+        min-height: 480px;
+        background: linear-gradient(135deg, rgba(191,179,123,0.08) 0%, rgba(191,179,123,0.15) 30%, rgba(255,255,255,1) 60%, rgba(248,249,250,1) 100%);
+        display: flex;
+        align-items: center;
+        padding: 100px 20px 120px;
+        overflow: hidden;
+    }
+
+    .valencia-pro-hero::before {
+        content: '';
+        position: absolute;
+        right: -8%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 550px;
+        height: 550px;
+        border: 3px solid rgba(191,179,123,0.25);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .valencia-pro-hero::after {
+        content: '';
+        position: absolute;
+        right: 2%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 350px;
+        height: 350px;
+        background: radial-gradient(circle, rgba(191,179,123,0.15) 0%, rgba(191,179,123,0.08) 50%, transparent 70%);
+        border: 2px solid rgba(191,179,123,0.2);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .valencia-hero-inner {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 40px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 5;
+    }
+
+    .valencia-hero-inner::before {
+        content: '';
+        position: absolute;
+        left: -100px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 400px;
+        height: 400px;
+        background-image: url('https://bracketweb.com/zoomvilla-html/assets/images/shapes/about-shape-1-1.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        opacity: 0.8;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .valencia-hero-left {
+        flex: 0 0 50%;
+        max-width: 550px;
+        position: relative;
+    }
+
+    .valencia-hero-title {
+        font-size: 3.8rem;
+        font-weight: 800;
+        margin: 0;
+        line-height: 1.15;
+        letter-spacing: -2px;
+        font-family: 'Lato', sans-serif;
+        color: #1a1a1a;
+    }
+
+    .valencia-breadcrumbs {
+        margin-top: 25px;
+        color: #636e72;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .valencia-breadcrumbs span {
+        color: #bfb37b;
+        font-weight: 600;
+    }
+
+    .valencia-breadcrumbs::before {
+        content: '';
+        width: 40px;
+        height: 2px;
+        background: #bfb37b;
+    }
+
+    .valencia-hero-right {
+        flex: 0 0 400px;
+        max-width: 100%;
+    }
+
+    .valencia-hero-desc {
+        color: #636e72;
+        font-size: 1.1rem;
+        line-height: 1.7;
+        font-weight: 400;
+        border-left: 3px solid #bfb37b;
+        padding-left: 20px;
+        margin: 0;
+    }
+
+    /* MAIN CONTAINER */
+    .valencia-main-container {
+        max-width: 1200px;
+        margin: -60px auto 0;
+        background: #fff;
+        border-radius: 40px 40px 0 0;
+        padding: 60px;
+        position: relative;
+        z-index: 10;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 60px;
+    }
+
+    /* INFO COLUMN */
+    .valencia-info-col h3 {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+        color: #2d3436;
+    }
+
+    .valencia-info-col > p {
+        color: #636e72;
+        margin-bottom: 40px;
+        line-height: 1.6;
+    }
+
+    .valencia-contact-list {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .valencia-contact-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .valencia-icon-box {
+        width: 50px;
+        height: 50px;
+        background: rgba(191, 179, 123, 0.15);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #bfb37b;
+        flex-shrink: 0;
+        transition: all 0.3s;
+    }
+
+    .valencia-contact-card:hover .valencia-icon-box {
+        background: #bfb37b;
+        color: #fff;
+    }
+
+    .valencia-card-details h5 {
+        margin: 0 0 5px;
+        font-size: 0.85rem;
+        color: #b2bec3;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .valencia-card-details a,
+    .valencia-card-details div {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d3436;
+        text-decoration: none;
+        line-height: 1.4;
+    }
+
+    .valencia-card-details a:hover {
+        color: #bfb37b;
+    }
+
+    /* FORM COLUMN */
+    .valencia-form-grid-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .valencia-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #2d3436;
+        display: block;
+    }
+
+    .valencia-input,
+    .valencia-select,
+    .valencia-textarea {
+        width: 100%;
+        padding: 14px 18px;
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+        background: #f9f9f9;
+        font-size: 0.95rem;
+        color: #2d3436;
+        transition: all 0.3s;
+        font-family: inherit;
+    }
+
+    .valencia-input:focus,
+    .valencia-select:focus,
+    .valencia-textarea:focus {
+        outline: none;
+        background: #fff;
+        border-color: #bfb37b;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .valencia-textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    .valencia-full-width {
+        grid-column: span 2;
+    }
+
+    .valencia-submit-btn {
+        background: #bfb37b;
+        color: #fff;
+        border: none;
+        padding: 16px 36px;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+        width: 100%;
+    }
+
+    .valencia-submit-btn:hover {
+        background: #2d3436;
+        transform: translateY(-2px);
+    }
+
+    /* BENTO GRID */
+    .valencia-bento-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 20px;
+        position: relative;
+    }
+
+    .valencia-float-shape-left {
+        position: absolute;
+        top: -100px;
+        left: -250px;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.5;
+        max-width: 400px;
+    }
+
+    .valencia-float-shape-right {
+        position: absolute;
+        bottom: -80px;
+        right: -250px;
+        z-index: 0;
+        pointer-events: none;
+        transform: rotate(180deg);
+        opacity: 0.5;
+        max-width: 400px;
+    }
+
+    .valencia-bento-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 25px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .valencia-bento-left {
+        position: relative;
+        min-height: 500px;
+        overflow: visible;
+    }
+
+    .valencia-corner-container {
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        z-index: 10;
+    }
+
+    .cornered-block {
+        background-color: #fff;
+        border-radius: 0 0 30px 0;
+        width: 160px;
+        height: 60px;
+        position: relative;
+    }
+
+    .spaciaz-border-shape {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        background-color: #fff;
+    }
+
+    .spaciaz-border-shape.top-right {
+        top: 0;
+        right: -30px;
+        clip-path: path("M0 0 Q0,30 30,30 L 0 30 Z");
+        transform: rotate(90deg);
+    }
+
+    .spaciaz-border-shape.bottom-left {
+        bottom: -30px;
+        left: 0;
+        transform: rotate(90deg);
+        clip-path: path("M0 0 Q0,30 30,30 L 0 30 Z");
+    }
+
+    .valencia-large-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 28px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .valencia-bento-right {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 25px;
+    }
+
+    .valencia-stat-card {
+        background: #fdfdfd;
+        border: 1px solid #f0f0f0;
+        border-radius: 24px;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .valencia-stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border-color: #bfb37b;
+    }
+
+    .valencia-stat-icon-wrapper {
+        margin-bottom: 20px;
+    }
+
+    .valencia-stat-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #2d3436;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+    }
+
+    .valencia-stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #2d3436;
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+
+    .valencia-stat-plus {
+        color: #bfb37b;
+    }
+
+    .valencia-stat-desc {
+        font-size: 0.95rem;
+        color: #636e72;
+    }
+
+    .valencia-mini-image-card {
+        border-radius: 24px;
+        overflow: hidden;
+    }
+
+    .valencia-mini-image-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* MODAL */
+    .valencia-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .valencia-modal-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .valencia-modal-content {
+        background: #fff;
+        width: 90%;
+        max-width: 450px;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        transform: scale(0.8);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .valencia-modal-overlay.show .valencia-modal-content {
+        transform: scale(1);
+    }
+
+    .valencia-modal-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: #e6f9ed;
+        color: #2ecc71;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .valencia-modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2d3436;
+        margin-bottom: 10px;
+    }
+
+    .valencia-modal-msg {
+        font-size: 1rem;
+        color: #636e72;
+        line-height: 1.5;
+        margin-bottom: 30px;
+    }
+
+    .valencia-modal-close {
+        background: #2d3436;
+        color: #fff;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 50px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .valencia-modal-close:hover {
+        background: #000;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 992px) {
+        .valencia-main-container {
+            grid-template-columns: 1fr;
+            padding: 40px 30px;
+        }
+        .valencia-bento-grid {
+            grid-template-columns: 1fr;
+        }
+        .valencia-bento-left {
+            height: 400px;
+            min-height: auto;
+        }
+        .valencia-hero-inner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .valencia-hero-left,
+        .valencia-hero-right {
+            flex: 1;
+            max-width: 100%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .valencia-hero-title {
+            font-size: 2.5rem;
+        }
+        .valencia-form-grid-inner {
+            grid-template-columns: 1fr;
+        }
+        .valencia-full-width {
+            grid-column: span 1;
+        }
+        .valencia-bento-right {
+            grid-template-columns: 1fr;
+        }
+        .valencia-pro-hero {
+            padding: 80px 20px 100px;
+            min-height: auto;
+        }
+    }
+</style>
+
+<script define:vars={{ apiUrl }}>
+    const form = document.getElementById('contactForm');
+    const modal = document.getElementById('successModal');
+    const closeBtn = document.getElementById('closeModal');
+    
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = form.querySelector('button[type="submit"]');
+            const originalContent = btn.innerHTML;
+            
+            // Validar Turnstile
+            const formData = new FormData(form);
+            const turnstileResponse = formData.get('cf-turnstile-response');
+            
+            if (!turnstileResponse) {
+                alert('Por favor completa la verificación de seguridad.');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = 'Enviando...';
+            
+            try {
+                // Preparar datos para REST API
+                const data = {
+                    contact_name: formData.get('contact_name'),
+                    contact_email: formData.get('contact_email'),
+                    contact_phone: formData.get('contact_phone'),
+                    contact_interest: formData.get('contact_interest'),
+                    contact_message: formData.get('contact_message'),
+                    'cf-turnstile-response': turnstileResponse
+                };
+
+                const response = await fetch(`${apiUrl}/wp-json/valencia/v1/send-contact`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (modal) modal.classList.add('show');
+                    form.reset();
+                    if (window.turnstile) window.turnstile.reset();
+                } else {
+                    alert('Error: ' + (result.message || 'Hubo un problema al enviar el mensaje.'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión con el servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        });
+    }
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            if (modal) modal.classList.remove('show');
+        });
+    }
+    
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('show');
+        });
+    }
+</script>
