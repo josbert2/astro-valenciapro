@@ -44,6 +44,7 @@ try {
                         valenciaPriceUnit
                         realEstatePropertyType
                         realEstatePropertyOperation
+                        realEstatePropertyLocation
                         propertyStatus
                     }
                 }
@@ -369,8 +370,8 @@ const operationColors: Record<string, string> = {
 
 <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
 
-<script define:vars={{ apiUrl, mapboxToken }}>
-    // Initialize Mapbox Map
+<script define:vars={{ properties, mapboxToken }}>
+    // Initialize Mapbox Map (using server-side data, no extra fetch needed)
     async function initPropertiesMap() {
         if (!window.mapboxgl) {
             const script = document.createElement('script');
@@ -378,34 +379,6 @@ const operationColors: Record<string, string> = {
             document.head.appendChild(script);
             await new Promise(resolve => script.onload = resolve);
         }
-
-        // Fetch properties with location
-        const response = await fetch(`${apiUrl}/graphql`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: `{
-                    properties(first: 100) {
-                        nodes {
-                            title
-                            uri
-                            slug
-                            featuredImage { node { sourceUrl } }
-                            realEstatePropertyAddress
-                            realEstatePropertyBedrooms
-                            realEstatePropertyBathrooms
-                            realEstatePropertySize
-                            realEstatePropertyPriceShort
-                            valenciaPriceUnit
-                            realEstatePropertyLocation
-                        }
-                    }
-                }`
-            })
-        });
-
-        const { data } = await response.json();
-        const properties = data?.properties?.nodes || [];
 
         window.mapboxgl.accessToken = mapboxToken;
 
@@ -421,6 +394,7 @@ const operationColors: Record<string, string> = {
         const bounds = new window.mapboxgl.LngLatBounds();
         let hasCoords = false;
 
+        // Use properties from server (no fetch needed!)
         properties.forEach(property => {
             const loc = property.realEstatePropertyLocation;
             if (!loc) return;
@@ -475,7 +449,12 @@ const operationColors: Record<string, string> = {
         }
     }
 
-    initPropertiesMap();
+    // Load map after page is ready (non-blocking)
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => initPropertiesMap());
+    } else {
+        setTimeout(initPropertiesMap, 100);
+    }
 
     // Filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
