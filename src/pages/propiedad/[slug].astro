@@ -379,18 +379,9 @@ const siteUrl = 'https://valenciapro.cl';
 const propertyUrl = `${siteUrl}/propiedad/${property.slug}`;
 const propertyImage = property.featuredImage?.node?.sourceUrl || `${siteUrl}/og-image.jpg`;
 
-// Custom OG Image for property pages
-const ogImageParams = new URLSearchParams({
-    title: property.title || 'Propiedad',
-    address: property.realEstatePropertyAddress || 'Santiago, Chile',
-    price: formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit),
-    beds: property.realEstatePropertyBedrooms || '',
-    baths: property.realEstatePropertyBathrooms || '',
-    size: property.realEstatePropertySize || '',
-    operation: property.realEstatePropertyOperation || 'Venta',
-    image: propertyImage,
-});
-const customOgImage = `${siteUrl}/api/og-property.png?${ogImageParams.toString()}`;
+// Use property's featured image directly for faster WhatsApp/social loading
+// The dynamic API image was too slow for WhatsApp preview
+const customOgImage = propertyImage;
 
 // Clean HTML from description
 const cleanDescription = property.content 
