@@ -1446,6 +1446,7 @@
     .lightbox-nav {
         width: 44px;
         height: 44px;
+        touch-action: manipulation; /* Prevents double-tap zoom */
     }
     
     .lightbox-prev {
@@ -1461,6 +1462,15 @@
         right: 10px;
         width: 40px;
         height: 40px;
+        touch-action: manipulation; /* Prevents double-tap zoom */
+    }
+    
+    /* Hide other elements when lightbox is active */
+    .lightbox-overlay.active ~ .sticky-bar,
+    body:has(.lightbox-overlay.active) .sticky-bar,
+    body:has(.lightbox-overlay.active) [class*="whatsapp"],
+    body:has(.lightbox-overlay.active) [class*="floating"] {
+        display: none !important;
     }
 }
 
