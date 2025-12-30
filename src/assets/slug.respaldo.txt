@@ -105,19 +105,114 @@ try {
     console.error('Error fetching property:', error);
 }
 
-// Gallery images will be loaded client-side
+// If we have image IDs, fetch the media URLs
 let galleryImages: string[] = [];
-const imageIds = property?.realEstatePropertyImages?.split('|').filter((id: string) => id) || [];
+
+
+if (property?.realEstatePropertyImages) {
+    const imageIds = property.realEstatePropertyImages.split('|').filter((id: string) => id);
+
+    const queryQLImage = `
+    {
+      mediaItems(where: { in: [${imageIds}] }, first: 50) {
+        nodes {
+          databaseId
+          sourceUrl
+        }
+      }
+    }
+  `
+ 
+
+    if (imageIds.length > 0) {
+        try {
+            // Fetch media items by their IDs
+            const mediaResponse = await fetch(`${apiUrl}/graphql`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: queryQLImage,
+                    variables: { ids: imageIds }
+                })
+            });
+
+         
+            const mediaResult = await mediaResponse.json();
+
+         
+            if (mediaResult.data?.mediaItems?.nodes) {
+                // Sort media by the original order of IDs
+                const mediaMap = new Map(
+                    mediaResult.data.mediaItems.nodes.map((m: any) => [String(m.databaseId), m.sourceUrl])
+                );
+                galleryImages = imageIds
+                    .map((id: string) => mediaMap.get(id))
+                    .filter((url: string | undefined): url is string => !!url);
+            }
+        } catch (e) {
+            console.error('Error fetching gallery images:', e);
+        }
+    }
+}
 
 if (!property) {
     console.log('Property not found:', slug);
     return Astro.redirect('/404');
 }
 
-
-// Navigation (prev/next) will be loaded client-side
+// Fetch adjacent properties for prev/next navigation
 let prevProperty: any = null;
 let nextProperty: any = null;
+
+try {
+    const navResponse = await fetch(`${apiUrl}/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            query: `
+                {
+                    properties(
+                        where: { orderby: { field: DATE, order: DESC } }
+                        first: 100
+                    ) {
+                        nodes {
+                            databaseId
+                            title
+                            slug
+                            featuredImage { node { sourceUrl } }
+                            realEstatePropertyBedrooms
+                            realEstatePropertyBathrooms
+                            realEstatePropertySize
+                            realEstatePropertyGarage
+                            realEstatePropertyPriceShort
+                            valenciaPriceUnit
+                        }
+                    }
+                }
+            `
+        })
+    });
+    
+    const navResult = await navResponse.json();
+    console.log('Navigation result:', navResult);
+    const allProperties = navResult.data?.properties?.nodes || [];
+    
+   
+    
+    // Find current property index - compare as strings to avoid type issues
+    const currentIndex = allProperties.findIndex((p: any) => String(p.databaseId) === String(property.databaseId));
+
+    if (currentIndex > 0) {
+        prevProperty = allProperties[currentIndex - 1];
+
+    }
+    if (currentIndex < allProperties.length - 1 && currentIndex !== -1) {
+        nextProperty = allProperties[currentIndex + 1];
+      
+    }
+} catch (e) {
+    console.error('Error fetching adjacent properties:', e);
+}
 
 // Helper functions
 function formatPrice(price: string, unit: string) {
@@ -425,9 +520,57 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
                 </div>
                 
                 <div class="header-right flex flex-row md:flex-col ite">
-                    <!-- Property Navigation (loaded client-side) -->
-                    <div class="property-nav" id="propertyNav">
-                        <!-- Navigation will be populated by JavaScript -->
+                    <!-- Property Navigation -->
+                    <div class="property-nav">
+                        {prevProperty && (
+                            <div class="nav-wrapper">
+                                <a href={`/propiedad/${prevProperty.slug}`} class="nav-link nav-prev">
+                                    <span class="nav-arrow">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                                    </span>
+                                    <span class="nav-text">Anterior</span>
+                                </a>
+                                <div class="nav-hover-card nav-hover-left">
+                                    {prevProperty.featuredImage?.node?.sourceUrl && (
+                                        <img src={prevProperty.featuredImage.node.sourceUrl} alt={prevProperty.title} />
+                                    )}
+                                    <div class="nav-hover-content">
+                                        <h4>{prevProperty.title}</h4>
+                                        <div class="nav-hover-features">
+                                            {prevProperty.realEstatePropertyBedrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V7H1v10h2v-3h18v3h2V11c0-2.21-1.79-4-4-4z"/></svg> {prevProperty.realEstatePropertyBedrooms}</span>}
+                                            {prevProperty.realEstatePropertyBathrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7c-.55 0-1 .45-1 1v3H2v5h2v2h2v-2h12v2h2v-2h2v-5h-4V8c0-.55-.45-1-1-1h-3v2h2v2H8V8c0-.55-.45-1-1-1z"/></svg> {prevProperty.realEstatePropertyBathrooms}</span>}
+                                            {prevProperty.realEstatePropertySize && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg> {prevProperty.realEstatePropertySize}m²</span>}
+                                        </div>
+                                        <p class="nav-hover-price">{formatPrice(prevProperty.realEstatePropertyPriceShort, prevProperty.valenciaPriceUnit)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {nextProperty && (
+                            <div class="nav-wrapper">
+                                <a href={`/propiedad/${nextProperty.slug}`} class="nav-link nav-next">
+                                    <span class="nav-text">Siguiente</span>
+                                    <span class="nav-arrow">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                                    </span>
+                                </a>
+                                <div class="nav-hover-card nav-hover-right">
+                                    {nextProperty.featuredImage?.node?.sourceUrl && (
+                                        <img src={nextProperty.featuredImage.node.sourceUrl} alt={nextProperty.title} />
+                                    )}
+                                    <div class="nav-hover-content">
+                                        <h4>{nextProperty.title}</h4>
+                                        <div class="nav-hover-features">
+                                            {nextProperty.realEstatePropertyBedrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V7H1v10h2v-3h18v3h2V11c0-2.21-1.79-4-4-4z"/></svg> {nextProperty.realEstatePropertyBedrooms}</span>}
+                                            {nextProperty.realEstatePropertyBathrooms && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7c-.55 0-1 .45-1 1v3H2v5h2v2h2v-2h12v2h2v-2h2v-5h-4V8c0-.55-.45-1-1-1h-3v2h2v2H8V8c0-.55-.45-1-1-1z"/></svg> {nextProperty.realEstatePropertyBathrooms}</span>}
+                                            {nextProperty.realEstatePropertySize && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg> {nextProperty.realEstatePropertySize}m²</span>}
+                                        </div>
+                                        <p class="nav-hover-price">{formatPrice(nextProperty.realEstatePropertyPriceShort, nextProperty.valenciaPriceUnit)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     
                     <!-- Social Share Buttons -->
@@ -447,7 +590,7 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
             
             <!-- Gallery Section -->
             <div class="gallery-container">
-                <div class="gallery-grid" id="galleryGrid">
+                <div class={`gallery-grid ${galleryImages.length > 0 ? 'has-gallery' : ''}`}>
                     {property.featuredImage?.node?.sourceUrl && (
                         <div class="gallery-item featured">
                             <div class="gallery-skeleton"></div>
@@ -459,23 +602,25 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
                             />
                         </div>
                     )}
-                    <!-- Gallery images will be loaded client-side -->
-                    {imageIds.length > 0 && (
-                        <>
-                            <div class="gallery-item grid-1"><div class="gallery-skeleton"></div></div>
-                            <div class="gallery-item grid-2"><div class="gallery-skeleton"></div></div>
-                            <div class="gallery-item grid-3"><div class="gallery-skeleton"></div></div>
-                            <div class="gallery-item grid-4"><div class="gallery-skeleton"></div></div>
-                        </>
-                    )}
+                    {galleryImages.slice(0, 4).map((img: string, i: number) => (
+                        <div class={`gallery-item grid-${i + 1}`}>
+                            <div class="gallery-skeleton"></div>
+                            <img 
+                                src={img} 
+                                alt={`${property.title} - ${i + 2}`}
+                                loading="lazy"
+                                onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';"
+                            />
+                        </div>
+                    ))}
                 </div>
-                {(imageIds.length > 0 || property.featuredImage?.node?.sourceUrl) && (
+                {(galleryImages.length > 4 || property.featuredImage?.node?.sourceUrl) && (
                     <button class="btn-show-photos" id="showPhotosBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                             <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                         </svg>
-                        <span id="photoCount">Mostrar fotos</span>
+                        Mostrar {galleryImages.length + 1} fotos
                     </button>
                 )}
             </div>
@@ -695,8 +840,7 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
                     )}
                     
                     <!-- Floor Plans / Plantas -->
-                 
-                    {floors[0].real_estate_floor_name > 0 && (
+                    {floors.length > 0 && (
                         <div class="section-block">
                             <h2 class="section-title">Plantas</h2>
                             <div class="floor-tabs">
@@ -956,168 +1100,7 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
     }
 </script>
 
-<script define:vars={{ propertyId: property.databaseId, imageIds: imageIds, apiUrl, propertyTitle: property.title }}>
-    // Client-side fetch for gallery images and navigation
-    const galleryImages = [];
-    
-    async function loadGalleryImages() {
-        if (!imageIds || imageIds.length === 0) return;
-        
-        const query = `{
-            mediaItems(where: { in: [${imageIds.join(',')}] }, first: 50) {
-                nodes {
-                    databaseId
-                    sourceUrl
-                }
-            }
-        }`;
-        
-        try {
-            const response = await fetch(`${apiUrl}/graphql`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query })
-            });
-            
-            const result = await response.json();
-            if (result.data?.mediaItems?.nodes) {
-                const mediaMap = new Map(
-                    result.data.mediaItems.nodes.map(m => [String(m.databaseId), m.sourceUrl])
-                );
-                
-                // Sort by original order
-                const urls = imageIds.map(id => mediaMap.get(String(id))).filter(Boolean);
-                galleryImages.push(...urls);
-                
-                // Update gallery grid
-                const galleryGrid = document.getElementById('galleryGrid');
-                if (galleryGrid) {
-                    const skeletons = galleryGrid.querySelectorAll('.gallery-item:not(.featured)');
-                    urls.slice(0, 4).forEach((url, i) => {
-                        if (skeletons[i]) {
-                            skeletons[i].innerHTML = `<div class="gallery-skeleton"></div><img src="${url}" alt="Gallery ${i + 2}" loading="lazy" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';" />`;
-                        }
-                    });
-                    
-                    if (urls.length > 0) {
-                        galleryGrid.classList.add('has-gallery');
-                    }
-                }
-                
-                // Update photo count
-                const photoCount = document.getElementById('photoCount');
-                if (photoCount) {
-                    const featuredImg = document.querySelector('.gallery-item.featured img');
-                    const total = urls.length + (featuredImg ? 1 : 0);
-                    photoCount.textContent = `Mostrar ${total} fotos`;
-                }
-                
-                // Update images array for lightbox
-                window.galleryImages = urls;
-            }
-        } catch (e) {
-            console.error('Error loading gallery:', e);
-        }
-    }
-    
-    async function loadNavigation() {
-        const query = `{
-            properties(where: { orderby: { field: DATE, order: DESC } }, first: 100) {
-                nodes {
-                    databaseId
-                    title
-                    slug
-                    featuredImage { node { sourceUrl } }
-                    realEstatePropertyBedrooms
-                    realEstatePropertyBathrooms
-                    realEstatePropertySize
-                    realEstatePropertyPriceShort
-                    valenciaPriceUnit
-                }
-            }
-        }`;
-        
-        try {
-            const response = await fetch(`${apiUrl}/graphql`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query })
-            });
-            
-            const result = await response.json();
-            const allProperties = result.data?.properties?.nodes || [];
-            const currentIndex = allProperties.findIndex(p => String(p.databaseId) === String(propertyId));
-            
-            const navContainer = document.getElementById('propertyNav');
-            if (!navContainer) return;
-            
-            let html = '';
-            
-            // Previous property
-            if (currentIndex > 0) {
-                const prev = allProperties[currentIndex - 1];
-                html += renderNavButton(prev, 'prev');
-            }
-            
-            // Next property
-            if (currentIndex < allProperties.length - 1 && currentIndex !== -1) {
-                const next = allProperties[currentIndex + 1];
-                html += renderNavButton(next, 'next');
-            }
-            
-            navContainer.innerHTML = html;
-        } catch (e) {
-            console.error('Error loading navigation:', e);
-        }
-    }
-    
-    function formatPrice(price, unit) {
-        if (!price) return 'Consultar';
-        if (unit === 'UF') return `UF ${parseFloat(price).toLocaleString('es-CL')}`;
-        return `$ ${parseInt(price).toLocaleString('es-CL')}`;
-    }
-    
-    function renderNavButton(prop, direction) {
-        const isPrev = direction === 'prev';
-        const arrowSvg = isPrev 
-            ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>'
-            : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
-        
-        const features = [];
-        if (prop.realEstatePropertyBedrooms) features.push(`<span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V7H1v10h2v-3h18v3h2V11c0-2.21-1.79-4-4-4z"/></svg> ${prop.realEstatePropertyBedrooms}</span>`);
-        if (prop.realEstatePropertyBathrooms) features.push(`<span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7c-.55 0-1 .45-1 1v3H2v5h2v2h2v-2h12v2h2v-2h2v-5h-4V8c0-.55-.45-1-1-1h-3v2h2v2H8V8c0-.55-.45-1-1-1z"/></svg> ${prop.realEstatePropertyBathrooms}</span>`);
-        if (prop.realEstatePropertySize) features.push(`<span><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/></svg> ${prop.realEstatePropertySize}m²</span>`);
-        
-        return `
-            <div class="nav-wrapper">
-                <a href="/propiedad/${prop.slug}" class="nav-link nav-${direction}">
-                    ${isPrev ? `<span class="nav-arrow">${arrowSvg}</span><span class="nav-text">Anterior</span>` : `<span class="nav-text">Siguiente</span><span class="nav-arrow">${arrowSvg}</span>`}
-                </a>
-                <div class="nav-hover-card nav-hover-${isPrev ? 'left' : 'right'}">
-                    ${prop.featuredImage?.node?.sourceUrl ? `<img src="${prop.featuredImage.node.sourceUrl}" alt="${prop.title}" />` : ''}
-                    <div class="nav-hover-content">
-                        <h4>${prop.title}</h4>
-                        <div class="nav-hover-features">${features.join('')}</div>
-                        <p class="nav-hover-price">${formatPrice(prop.realEstatePropertyPriceShort, prop.valenciaPriceUnit)}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Load on page load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            loadGalleryImages();
-            loadNavigation();
-        });
-    } else {
-        loadGalleryImages();
-        loadNavigation();
-    }
-</script>
-
-<script define:vars={{ allImages: [property.featuredImage?.node?.sourceUrl].filter(Boolean) }}>
+<script define:vars={{ allImages: [property.featuredImage?.node?.sourceUrl, ...galleryImages].filter(Boolean) }}>
     // Lightbox functionality
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightboxImage');
@@ -1128,16 +1111,9 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
     const showPhotosBtn = document.getElementById('showPhotosBtn');
     
     let currentIndex = 0;
-    // Combine featured image with gallery images loaded by client-side script
-    const getImages = () => [
-        ...allImages,
-        ...(window.galleryImages || [])
-    ];
-    let images = getImages();
+    const images = allImages;
     
     function openLightbox(index = 0) {
-        // Refresh images in case gallery was loaded after initial script
-        images = getImages();
         currentIndex = index;
         updateLightboxImage();
         lightbox.classList.add('active');
