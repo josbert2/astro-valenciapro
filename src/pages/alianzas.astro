@@ -6,7 +6,7 @@ const apiUrl = import.meta.env.PUBLIC_WP_API_URL || 'http://localhost:10016';
 // Fetch alliances from WordPress REST API
 let alianzas: any[] = [];
 try {
-    const response = await fetch(`${apiUrl}/wp-json/valencia/v1/alianzas`);
+    const response = await fetch(`https://cms.valenciapro.cl/wp-json/valencia/v1/alianzas`);
     if (response.ok) {
         alianzas = await response.json();
     }
