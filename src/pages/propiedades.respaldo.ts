@@ -1,0 +1,979 @@
+---
+import Layout from '../layouts/main.astro';
+import Header from '../components/Header.astro';
+
+const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
+const mapboxToken = 'pk.eyJ1Ijoiam9zYmVydCIsImEiOiJjbWlzYmR0b3MxN3RnM2hvYnFuZzYzeHhrIn0.IcQTlfA5pb6QtSL7TsUX5A';
+
+// Get query params
+const url = new URL(Astro.request.url);
+const keyword = url.searchParams.get('keyword') || '';
+const operation = url.searchParams.get('operation') || '';
+const type = url.searchParams.get('type') || '';
+const status = url.searchParams.get('status') || '';
+const bedrooms = url.searchParams.get('bedrooms') || '';
+
+// Build GraphQL query
+let properties = [];
+let propertyTypes: string[] = [];
+
+try {
+    const response = await fetch(`https://cms.valenciapro.cl/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            query: `{
+                properties(first: 100) {
+                    nodes {
+                        title
+                        uri
+                        databaseId
+                        slug
+                        featuredImage {
+                            node {
+                                sourceUrl
+                                altText
+                            }
+                        }
+                        realEstatePropertyAddress
+                        realEstatePropertyBedrooms
+                        realEstatePropertyBathrooms
+                        realEstatePropertyGarage
+                        realEstatePropertySize
+                        realEstatePropertyPriceShort
+                        valenciaPriceUnit
+                        realEstatePropertyType
+                        realEstatePropertyOperation
+                        realEstatePropertyLocation
+                        propertyStatus
+                    }
+                }
+            }`
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.errors) {
+        console.error('GraphQL errors:', result.errors);
+    }
+    
+    let allProperties = result.data?.properties?.nodes || [];
+    console.log('Properties loaded:', allProperties.length);
+    
+    // TODO: Add status filter when propertyStatuses field is available
+    const hiddenStatuses = ['vendida', 'sold', 'arrendada', 'rented', 'mantenimiento', 'maintenance'];
+    properties = allProperties.filter((p: any) => {
+        const status = (p.propertyStatus || 'disponible').toLowerCase();
+        return !hiddenStatuses.includes(status);
+    });
+    console.log('Properties to display:', properties.length);
+    
+    // Extract unique property types
+    const typesSet = new Set<string>();
+    properties.forEach((p: any) => {
+        if (p.realEstatePropertyType) {
+            typesSet.add(p.realEstatePropertyType);
+        }
+    });
+    propertyTypes = Array.from(typesSet);
+    
+    // Apply filters only if params exist
+    if (keyword) {
+        properties = properties.filter((p: any) => 
+            p.title?.toLowerCase().includes(keyword.toLowerCase()) ||
+            p.realEstatePropertyAddress?.toLowerCase().includes(keyword.toLowerCase())
+        );
+    }
+    if (operation) {
+        properties = properties.filter((p: any) => 
+            p.realEstatePropertyOperation?.toLowerCase() === operation.toLowerCase()
+        );
+    }
+    if (type) {
+        properties = properties.filter((p: any) => 
+            p.realEstatePropertyType?.toLowerCase() === type.toLowerCase()
+        );
+    }
+    if (status) {
+        properties = properties.filter((p: any) => 
+            p.realEstatePropertyInternalStatus?.toLowerCase() === status.toLowerCase()
+        );
+    }
+    if (bedrooms) {
+        properties = properties.filter((p: any) => 
+            parseInt(p.realEstatePropertyBedrooms || '0') >= parseInt(bedrooms)
+        );
+    }
+} catch (error) {
+    console.error('Error fetching properties:', error);
+    properties = [];
+}
+
+const totalProperties = properties.length;
+
+// Format price helper
+function formatPrice(price: string, unit: string) {
+    if (!price) return 'Consultar';
+    if (unit === 'UF') {
+        return `UF ${parseFloat(price).toLocaleString('es-CL')}`;
+    }
+    return `$ ${parseInt(price).toLocaleString('es-CL')}`;
+}
+
+// Status colors
+const statusColors: Record<string, string> = {
+    'disponible': '#70C2A7',
+    'arrendada': '#9ab464',
+    'vendida': '#c07b59',
+    'reservada': '#cfab59',
+};
+
+const operationColors: Record<string, string> = {
+    'arriendo temporal': '#9ab464',
+    'arriendo': '#bfb37b',
+    'venta': '#c07b59',
+};
+---
+
+<Layout 
+    title="Propiedades" 
+    description="Explora nuestra selección de propiedades en arriendo y venta en Santiago, Chile."
+>
+
+    
+    <section class="properties-page">
+        <!-- Map Section -->
+        <div class="map-wrapper">
+            <div id="properties-map"></div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="properties-content">
+            <div class="max-w-7xl mx-auto px-4 lg:px-8">
+                
+                <!-- Search Bar -->
+                <div class="search-bar">
+                    <form method="get" action="/propiedades" class="search-form">
+                        <div class="search-grid">
+                            <input 
+                                type="text" 
+                                name="keyword" 
+                                placeholder="Buscar ciudad, estado o área" 
+                                value={keyword}
+                                class="search-input"
+                            />
+                            
+                            <select name="operation" class="search-select">
+                                <option value="">Operación</option>
+                                <option value="venta" selected={operation === 'venta'}>Venta</option>
+                                <option value="arriendo" selected={operation === 'arriendo'}>Arriendo</option>
+                                <option value="arriendo-temporal" selected={operation === 'arriendo-temporal'}>Arriendo Temporal</option>
+                            </select>
+                            
+                            <select name="type" class="search-select">
+                                <option value="">Tipo</option>
+                                {propertyTypes.map(t => (
+                                    <option value={t.toLowerCase()} selected={type === t.toLowerCase()}>
+                                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                                    </option>
+                                ))}
+                            </select>
+                            
+                            <select name="status" class="search-select">
+                                <option value="">Estado</option>
+                                <option value="disponible" selected={status === 'disponible'}>Disponible</option>
+                                <option value="arrendada" selected={status === 'arrendada'}>Arrendada</option>
+                                <option value="vendida" selected={status === 'vendida'}>Vendida</option>
+                                <option value="reservada" selected={status === 'reservada'}>Reservada</option>
+                            </select>
+                            
+                            <select name="bedrooms" class="search-select">
+                                <option value="">Habitaciones</option>
+                                {[1,2,3,4,5].map(n => (
+                                    <option value={String(n)} selected={bedrooms === String(n)}>{n}+</option>
+                                ))}
+                            </select>
+                            
+                            <button type="submit" class="search-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="M21 21l-4.35-4.35"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Header -->
+                <div class="listing-header">
+                    <div class="listing-info">
+                        <h1 class="listing-title">Listado de Propiedades</h1>
+                        <p class="listing-count">Mostrando <strong>{totalProperties}</strong> resultados</p>
+                        
+                        {(keyword || operation || type || status || bedrooms) && (
+                            <div class="active-filters">
+                                {keyword && <span class="filter-tag">Búsqueda: "{keyword}"</span>}
+                                {operation && <span class="filter-tag">{operation}</span>}
+                                {type && <span class="filter-tag">{type}</span>}
+                                {status && <span class="filter-tag">{status}</span>}
+                                {bedrooms && <span class="filter-tag">{bedrooms}+ Hab.</span>}
+                                <a href="/propiedades" class="clear-filters">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 6L6 18M6 6l12 12"/>
+                                    </svg>
+                                    Limpiar
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                
+                <!-- Filter Buttons -->
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="*">Ver todo</button>
+                    {propertyTypes.map(t => (
+                        <button class="filter-btn" data-filter={`.type-${t.toLowerCase()}`}>
+                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </button>
+                    ))}
+                    <span class="filter-divider"></span>
+                    <button class="filter-btn filter-btn-blue" data-filter=".status-arriendo">Arriendo</button>
+                    <button class="filter-btn filter-btn-blue" data-filter=".status-venta">Venta</button>
+                </div>
+                
+                <!-- Properties Grid -->
+                <div class="properties-grid" id="properties-grid">
+                    {properties.length > 0 ? (
+                        properties.map((property: any) => {
+                            const typeSlug = property.realEstatePropertyType?.toLowerCase() || '';
+                            const operationSlug = property.realEstatePropertyOperation?.toLowerCase() || '';
+                            
+                            // --- STATUS LOGIC FIX ---
+                            // Usamos el campo directo 'propertyStatus' que expone el plugin (igual que en single property)
+                            const statusSlug = (property.propertyStatus || 'disponible').toLowerCase();
+                            const statusColor = statusColors[statusSlug] || '#bfb37b';
+                            const operationColor = operationColors[operationSlug] || '#bfb37b';
+                            
+                            return (
+                                <div class={`property-card type-${typeSlug} status-${operationSlug}`}>
+                                    <div class="property-image">
+                                        {property.featuredImage?.node?.sourceUrl ? (
+                                            <img 
+                                                src={property.featuredImage.node.sourceUrl} 
+                                                alt={property.featuredImage.node.altText || property.title}
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div class="no-image">Sin imagen</div>
+                                        )}
+                                        
+                                        <div class="property-badges">
+                                            <div class="badges-left">
+                                                {statusSlug && (
+                                                    <span class="badge" style={`background: ${statusColor}`}>
+                                                        <span class="badge-dot"></span>
+                                                        {statusSlug.charAt(0).toUpperCase() + statusSlug.slice(1)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div class="badges-right">
+                                                {operationSlug && (
+                                                    <span class="badge" style={`background: ${operationColor}`}>
+                                                        {operationSlug.charAt(0).toUpperCase() + operationSlug.slice(1)}
+                                                    </span>
+                                                )}
+                                                {property.realEstatePropertyIdentity && (
+                                                    <span class="badge badge-code">
+                                                        CÓDIGO: {property.realEstatePropertyIdentity}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="property-content">
+                                        <h3 class="property-title">
+                                            <a href={`/propiedad/${property.uri.split('/').filter(Boolean).pop()}`}>{property.title}</a>
+                                        </h3>
+                                        
+                                        {property.realEstatePropertyAddress && (
+                                            <p class="property-location">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                                                </svg>
+                                                {property.realEstatePropertyAddress}
+                                            </p>
+                                        )}
+                                        
+                                        <div class="property-features">
+                                            {property.realEstatePropertyBedrooms && (
+                                                <span class="feature" title="Habitaciones">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/>
+                                                    </svg>
+                                                    {property.realEstatePropertyBedrooms}
+                                                </span>
+                                            )}
+                                            {property.realEstatePropertyBathrooms && (
+                                                <span class="feature" title="Baños">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M7 7c0-1.1.9-2 2-2s2 .9 2 2H7zm11 6H6v5h12v-5zm0-2c.55 0 1 .45 1 1v7c0 .55-.45 1-1 1H6c-.55 0-1-.45-1-1v-7c0-.55.45-1 1-1h12z"/>
+                                                    </svg>
+                                                    {property.realEstatePropertyBathrooms}
+                                                </span>
+                                            )}
+                                            {property.realEstatePropertyGarage && (
+                                                <span class="feature" title="Estacionamiento">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                                    </svg>
+                                                    {property.realEstatePropertyGarage}
+                                                </span>
+                                            )}
+                                            {property.realEstatePropertySize && (
+                                                <span class="feature" title="Superficie">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm16 14H5V5h14v14z"/>
+                                                    </svg>
+                                                    {property.realEstatePropertySize}m²
+                                                </span>
+                                            )}
+                                        </div>
+                                        
+                                        <div class="property-footer">
+                                            <span class="property-price">
+                                                {formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit)}
+                                            </span>
+                                            <a href={`/propiedad/${property.slug}`} class="btn-details">
+                                                Detalles
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div class="no-results">
+                            <p>No se encontraron propiedades.</p>
+                        </div>
+                    )}
+                </div>
+                
+            </div>
+        </div>
+    </section>
+</Layout>
+
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+
+<script define:vars={{ properties, mapboxToken }}>
+    // Initialize Mapbox Map (using server-side data, no extra fetch needed)
+    async function initPropertiesMap() {
+        if (!window.mapboxgl) {
+            const script = document.createElement('script');
+            script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+            document.head.appendChild(script);
+            await new Promise(resolve => script.onload = resolve);
+        }
+
+        window.mapboxgl.accessToken = mapboxToken;
+
+        const map = new window.mapboxgl.Map({
+            container: 'properties-map',
+            style: 'mapbox://styles/mapbox/light-v11',
+            center: [-70.6693, -33.4489],
+            zoom: 11
+        });
+
+        map.addControl(new window.mapboxgl.NavigationControl(), 'top-right');
+
+        const bounds = new window.mapboxgl.LngLatBounds();
+        let hasCoords = false;
+
+        // Use properties from server (no fetch needed!)
+        properties.forEach(property => {
+            const loc = property.realEstatePropertyLocation;
+            if (!loc) return;
+
+            let lat, lng;
+            if (typeof loc === 'string' && loc.includes(',')) {
+                const coords = loc.split(',');
+                lat = parseFloat(coords[0].trim());
+                lng = parseFloat(coords[1].trim());
+            } else if (typeof loc === 'object' && loc.location) {
+                const coords = loc.location.split(',');
+                lat = parseFloat(coords[0].trim());
+                lng = parseFloat(coords[1].trim());
+            }
+
+            if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+
+            hasCoords = true;
+            bounds.extend([lng, lat]);
+
+            const el = document.createElement('div');
+            el.className = 'map-marker';
+            el.innerHTML = '<div class="marker-inner"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>';
+
+            const price = property.realEstatePropertyPriceShort;
+            const unit = property.valenciaPriceUnit;
+            const formattedPrice = price ? (unit === 'UF' ? `UF ${price}` : `$ ${parseInt(price).toLocaleString('es-CL')}`) : '';
+
+            const popupHTML = `
+                <div class="map-popup">
+                    ${property.featuredImage?.node?.sourceUrl ? `<div class="popup-img"><img src="${property.featuredImage.node.sourceUrl}" /></div>` : ''}
+                    <div class="popup-body">
+                        <h4>${property.title}</h4>
+                        ${property.realEstatePropertyAddress ? `<p class="popup-addr">${property.realEstatePropertyAddress}</p>` : ''}
+                        <div class="popup-features">
+                            ${property.realEstatePropertyBedrooms ? `<span>${property.realEstatePropertyBedrooms} Hab</span>` : ''}
+                            ${property.realEstatePropertyBathrooms ? `<span>${property.realEstatePropertyBathrooms} Baño</span>` : ''}
+                            ${property.realEstatePropertySize ? `<span>${property.realEstatePropertySize} m²</span>` : ''}
+                        </div>
+                        ${formattedPrice ? `<p class="popup-price">${formattedPrice}</p>` : ''}
+                        <a href="${property.uri}" class="popup-link">Ver detalles →</a>
+                    </div>
+                </div>
+            `;
+
+            const popup = new window.mapboxgl.Popup({ offset: 35, maxWidth: '300px' }).setHTML(popupHTML);
+            new window.mapboxgl.Marker(el).setLngLat([lng, lat]).setPopup(popup).addTo(map);
+        });
+
+        if (hasCoords && !bounds.isEmpty()) {
+            map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+        }
+    }
+
+    // Load map after page is ready (non-blocking)
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => initPropertiesMap());
+    } else {
+        setTimeout(initPropertiesMap, 100);
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const filter = btn.getAttribute('data-filter');
+            document.querySelectorAll('.property-card').forEach(card => {
+                card.style.display = (filter === '*' || card.matches(filter)) ? 'block' : 'none';
+            });
+        });
+    });
+</script>
+
+<style>
+    .properties-page {
+        min-height: 100vh;
+        background: #f8f9fa;
+    }
+    
+    .map-wrapper {
+        height: 600px;
+        background: #e0e0e0;
+    }
+    
+    #properties-map {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Map Markers */
+    :global(.map-marker) {
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :global(.marker-inner) {
+        width: 44px;
+        height: 44px;
+        background: #bfb37b;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(191, 179, 123, 0.4);
+        border: 3px solid #fff;
+        transition: all 0.2s;
+        color: #fff;
+    }
+
+    :global(.map-marker:hover .marker-inner) {
+        background: #d4c99a;
+        transform: scale(1.1);
+    }
+
+    :global(.mapboxgl-popup-content) {
+        padding: 0 !important;
+        border-radius: 12px !important;
+        overflow: hidden;
+    }
+
+    :global(.map-popup) {
+        min-width: 260px;
+    }
+
+    :global(.popup-img) {
+        height: 150px;
+        overflow: hidden;
+    }
+
+    :global(.popup-img img) {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    :global(.popup-body) {
+        padding: 16px;
+    }
+
+    :global(.popup-body h4) {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #2d3436;
+    }
+
+    :global(.popup-addr) {
+        font-size: 12px;
+        color: #636e72;
+        margin: 0 0 10px;
+    }
+
+    :global(.popup-features) {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        color: #636e72;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    :global(.popup-price) {
+        font-size: 18px;
+        font-weight: 700;
+        color: #bfb37b;
+        margin: 0 0 10px;
+    }
+
+    :global(.popup-link) {
+        display: block;
+        text-align: center;
+        padding: 10px;
+        background: rgba(191, 179, 123, 0.1);
+        color: #bfb37b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        transition: all 0.3s;
+    }
+
+    :global(.popup-link:hover) {
+        background: #bfb37b;
+        color: #fff;
+    }
+    
+    .properties-content {
+        position: relative;
+        margin-top: -60px;
+        padding-bottom: 80px;
+    }
+    
+    /* Search Bar */
+    .search-bar {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 30px;
+        z-index: 99;
+    position: relative;
+    }
+    
+    .search-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+        gap: 12px;
+        align-items: center;
+    }
+    
+    .search-input,
+    .search-select {
+        height: 50px;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 0 16px;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+    
+    .search-input:focus,
+    .search-select:focus {
+        outline: none;
+        border-color: #bfb37b;
+        box-shadow: 0 0 0 3px rgba(191, 179, 123, 0.1);
+    }
+    
+    .search-btn {
+        width: 50px;
+        height: 50px;
+        background: #bfb37b;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+    
+    .search-btn:hover {
+        background: #a89a6a;
+        transform: scale(1.05);
+    }
+    
+    /* Listing Header */
+    .listing-header {
+        margin-bottom: 30px;
+    }
+    
+    .listing-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2d3436;
+        margin: 0 0 8px;
+    }
+    
+    .listing-count {
+        font-size: 14px;
+        color: #636e72;
+        margin: 0 0 12px;
+    }
+    
+    .active-filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .filter-tag {
+        background: #f3f4f6;
+        color: #2d3436;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+    
+    .clear-filters {
+        background: #fee;
+        color: #c07b59;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    /* Filter Buttons */
+    .filter-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 40px;
+    }
+    
+    .filter-btn {
+        padding: 8px 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        color: #2d3436;
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .filter-btn:hover,
+    .filter-btn.active {
+        background: #bfb37b;
+        color: #fff;
+        border-color: #bfb37b;
+    }
+    
+    .filter-btn-blue {
+        border-color: #3498db;
+        color: #3498db;
+    }
+    
+    .filter-btn-blue:hover {
+        background: #3498db;
+        color: #fff;
+    }
+    
+    .filter-divider {
+        width: 1px;
+        height: 30px;
+        background: #ddd;
+        align-self: center;
+    }
+    
+    /* Properties Grid */
+    .properties-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+    
+    .property-card {
+        background: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+    }
+    
+    .property-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .property-image {
+        position: relative;
+        height: 240px;
+        overflow: hidden;
+    }
+    
+    .property-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s;
+    }
+    
+    .property-card:hover .property-image img {
+        transform: scale(1.05);
+    }
+    
+    .no-image {
+        width: 100%;
+        height: 100%;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+    }
+    
+    .property-badges {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    
+    .badges-left,
+    .badges-right {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .badge {
+        color: #fff;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.8);
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .badge-code {
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(10px);
+        font-size: 0.7rem;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .property-content {
+        padding: 24px;
+    }
+    
+    .property-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0 0 8px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .property-title a {
+        color: #2d3436;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+    
+    .property-title a:hover {
+        color: #bfb37b;
+    }
+    
+    .property-location {
+        font-size: 0.9rem;
+        color: #636e72;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 16px;
+    }
+    
+    .property-location svg {
+        color: #bfb37b;
+        flex-shrink: 0;
+    }
+    
+    .property-features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .feature {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #434141;
+        padding: 6px 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        cursor: help;
+        transition: all 0.3s;
+    }
+    
+    .feature:hover {
+        background: #bfb37b;
+        color: #fff;
+    }
+    
+    .feature svg {
+        color: #bfb37b;
+    }
+    
+    .feature:hover svg {
+        color: #fff;
+    }
+    
+    .property-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 16px;
+    }
+    
+    .property-price {
+        font-size: 1.4rem;
+        font-weight: 200;
+        color: #bfb37b;
+    }
+    
+    .btn-details {
+        color: #bfb37b;
+        font-weight: 500;
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.3s;
+    }
+    
+    .btn-details:hover {
+        text-decoration: underline;
+    }
+    
+    .no-results {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        color: #636e72;
+        font-size: 1.1rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .properties-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .search-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .properties-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .search-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .map-wrapper {
+            height: 300px;
+        }
+        
+        .listing-title {
+            font-size: 1.25rem;
+        }
+    }
+</style>
