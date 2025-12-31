@@ -147,12 +147,13 @@ const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
                 const propertyUrl = slug ? `/propiedad/${slug}` : '#';
                 
                 // Get status info
-                const statusSlug = (property.propertyStatus || 'disponible').toLowerCase();
+                const statusSlug = (property.propertyStatus || 'disponible', 'arrendada').toLowerCase();
                 const statusName = statusSlug.charAt(0).toUpperCase() + statusSlug.slice(1);
                 
                 // Status colors
                 const statusColors = {
-                    'disponible': { bg: '#bfb37b', dot: '#9a8f5c' }
+                    'disponible': { bg: '#bfb37b', dot: '#9a8f5c' },
+                    'arrendada': { bg: '#c07b59', dot: '#9a8f5c' }
                 };
                 const colors = statusColors[statusSlug] || statusColors['disponible'];
 

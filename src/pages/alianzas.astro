@@ -1,493 +1,211 @@
 ---
 import Layout from '../layouts/main.astro';
-
-const apiUrl =  'https://cms.valenciapro.cl';
-
-let alianzas: any[] = [];
-try {
-    const fetchUrl = `${apiUrl}/wp-json/valencia/v1/alianzas`;
-    console.log('Fetching alianzas from:', fetchUrl); // Debug log
-    const response = await fetch(fetchUrl);
-    if (response.ok) {
-        alianzas = await response.json();
-    } else {
-        console.error('Failed to fetch alianzas:', response.status, response.statusText);
-    }
-} catch (e) {
-    console.error('Error fetching alianzas:', e);
-}
 ---
 
-<Layout title="Alianzas | Valencia Pro" description="Conoce nuestras alianzas comerciales y beneficios exclusivos para nuestros clientes.">
-    <section class="valencia-alianzas-section">
-        <div class="container">
-            
-            <!-- Header Premium -->
-            <div class="alianzas-header">
-                <h4 class="alianzas-kicker">
-                    <span class="line-before"></span>
-                    Beneficios Exclusivos
-                </h4>
-                
-                <h2 class="alianzas-title">
-                    <span class="fw-light">Nuestras</span>
-                    <span class="fw-bold highlight-font">Alianzas</span>
-                </h2>
-                
-                <p class="alianzas-subtitle">
-                    Accede a descuentos y beneficios especiales por ser parte de nuestra comunidad.
-                </p>
-            </div>
+<Layout
+  title="Alianzas | Valencia Pro"
+  description="Conoce nuestras alianzas comerciales y beneficios exclusivos para nuestros clientes."
+>
+  <section class="valencia-alianzas-section">
+    <div class="container">
 
-            {alianzas.length > 0 ? (
-                <div class="alianzas-grid">
-                    {alianzas.map((alianza: any) => {
-                        const hasImage = !!alianza.imagen;
-                        const hasContact = alianza.telefono || alianza.whatsapp || alianza.instagram;
-                        return (
-                            <div class={`alianza-card ${hasImage ? 'has-featured-image' : ''}`}>
-                                <div class="alianza-card-inner">
-                                    
-                                    <div class="alianza-content">
-                                        <!-- Header: Logo + Nombre -->
-                                        <div class="alianza-card-header">
-                                            <div class={`alianza-logo ${!alianza.logo ? 'no-image' : ''}`}>
-                                                {alianza.logo ? (
-                                                    <img src={alianza.logo} alt={alianza.nombre} />
-                                                ) : (
-                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16.48 10.41c-.39.39-1.04.39-1.43 0l-4.47-4.46-7.05 7.04-.66-.63 3.9-3.91-3.25-3.24c-.39-.39-.39-1.04 0-1.43l3.9-3.91 6.97 6.97 4.5-4.5c1.17-1.17 3.06-1.17 4.24 0 1.17 1.17 1.17 3.06 0 4.24l-4.5 4.5c-.39.39-1.04.39-1.43 0l-.79-.8-4.93 4.94c-.39.39-1.04.39-1.43 0l-1.41-1.41c-.39-.39-.39-1.04 0-1.43l7.05-7.04z"/></svg>
-                                                )}
-                                            </div>
-                                            <h3 class="alianza-name">{alianza.nombre}</h3>
-                                        </div>
+      <!-- Header Premium -->
+      <div class="alianzas-header">
+        <h4 class="alianzas-kicker">
+          <span class="line-before"></span>
+          Beneficios Exclusivos
+        </h4>
 
-                                        {alianza.descripcion && (
-                                            <p class="alianza-description">{alianza.descripcion}</p>
-                                        )}
+        <h2 class="alianzas-title">
+          <span class="fw-light">Nuestras</span>
+          <span class="fw-bold highlight-font">Alianzas</span>
+        </h2>
 
-                                        {alianza.beneficio && (
-                                            <div class="alianza-benefit">
-                                                <span class="benefit-badge">Beneficio exclusivo</span>
-                                                <h4 class="benefit-title">{alianza.beneficio}</h4>
-                                                {alianza.beneficio_texto && (
-                                                    <p class="benefit-text">{alianza.beneficio_texto}</p>
-                                                )}
-                                            </div>
-                                        )}
+        <p class="alianzas-subtitle">
+          Accede a descuentos y beneficios especiales por ser parte de nuestra comunidad.
+        </p>
+      </div>
 
-                                        {hasContact && (
-                                            <div class="alianza-contact">
-                                                {alianza.telefono && (
-                                                    <a href={`tel:${alianza.telefono.replace(/\s+/g, '')}`} class="contact-item" title="Llamar">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                                        <span>{alianza.telefono}</span>
-                                                    </a>
-                                                )}
-                                                {alianza.whatsapp && (
-                                                    <a href={`https://wa.me/${alianza.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener" class="contact-item whatsapp" title="WhatsApp">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                                        <span>WhatsApp</span>
-                                                    </a>
-                                                )}
-                                                {alianza.instagram && (
-                                                    <a href={`https://instagram.com/${alianza.instagram.replace('@', '')}`} target="_blank" rel="noopener" class="contact-item instagram" title="Instagram">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                                                        <span>@{alianza.instagram.replace('@', '')}</span>
-                                                    </a>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {alianza.link && (
-                                            <div class="alianza-cta">
-                                                <a href={alianza.link} target="_blank" rel="noopener">
-                                                    Ver más información
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                                                </a>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {hasImage && (
-                                        <div class="alianza-featured-image">
-                                            <img src={alianza.imagen} alt={alianza.beneficio || alianza.nombre} />
-                                        </div>
-                                    )}
-
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            ) : (
-                <div class="no-alianzas">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16.48 10.41c-.39.39-1.04.39-1.43 0l-4.47-4.46-7.05 7.04-.66-.63 3.9-3.91-3.25-3.24c-.39-.39-.39-1.04 0-1.43l3.9-3.91 6.97 6.97 4.5-4.5c1.17-1.17 3.06-1.17 4.24 0 1.17 1.17 1.17 3.06 0 4.24l-4.5 4.5c-.39.39-1.04.39-1.43 0l-.79-.8-4.93 4.94c-.39.39-1.04.39-1.43 0l-1.41-1.41c-.39-.39-.39-1.04 0-1.43l7.05-7.04z"/></svg>
-                    <p>Próximamente agregaremos nuestras alianzas y beneficios exclusivos.</p>
-                </div>
-            )}
-
+      <!-- Client-side root -->
+      <div id="alianzas-root" class="alianzas-root">
+        <div class="no-alianzas">
+          <p>Cargando alianzas…</p>
         </div>
-    </section>
-</Layout>
+      </div>
 
-<style>
-    /* ============================================================================
-       ALIANZAS - Premium Partners Section
-       Valencia Propiedades
-       ============================================================================ */
+    </div>
+  </section>
 
-    .valencia-alianzas-section {
-        padding: 80px 0 100px;
-        position: relative;
+  <!-- Client-side loader -->
+  <script is:inline>
+    const apiUrl = "https://cms.valenciapro.cl";
+    const root = document.getElementById("alianzas-root");
+
+    function esc(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 20px;
+    function renderNoAlianzas(msg = "Próximamente agregaremos nuestras alianzas y beneficios exclusivos.") {
+      root.innerHTML = `
+        <div class="no-alianzas">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M16.48 10.41c-.39.39-1.04.39-1.43 0l-4.47-4.46-7.05 7.04-.66-.63 3.9-3.91-3.25-3.24c-.39-.39-.39-1.04 0-1.43l3.9-3.91 6.97 6.97 4.5-4.5c1.17-1.17 3.06-1.17 4.24 0 1.17 1.17 1.17 3.06 0 4.24l-4.5 4.5c-.39.39-1.04.39-1.43 0l-.79-.8-4.93 4.94c-.39.39-1.04.39-1.43 0l-1.41-1.41c-.39-.39-.39-1.04 0-1.43l7.05-7.04z"/>
+          </svg>
+          <p>${esc(msg)}</p>
+        </div>
+      `;
     }
 
-    /* Header Premium */
-    .alianzas-header {
-        margin-bottom: 50px;
+    function renderAlianzas(alianzas) {
+      if (!Array.isArray(alianzas) || alianzas.length === 0) {
+        return renderNoAlianzas();
+      }
+
+      const html = alianzas.map((alianza) => {
+        const hasImage = !!alianza.imagen;
+        const hasContact = !!(alianza.telefono || alianza.whatsapp || alianza.instagram);
+
+        const telClean = (alianza.telefono || "").replace(/\s+/g, "");
+        const waClean = (alianza.whatsapp || "").replace(/\D/g, "");
+        const igClean = (alianza.instagram || "").replace("@", "");
+
+        const logoHtml = alianza.logo
+          ? `<img src="${esc(alianza.logo)}" alt="${esc(alianza.nombre || "Alianza")}" />`
+          : `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16.48 10.41c-.39.39-1.04.39-1.43 0l-4.47-4.46-7.05 7.04-.66-.63 3.9-3.91-3.25-3.24c-.39-.39-.39-1.04 0-1.43l3.9-3.91 6.97 6.97 4.5-4.5c1.17-1.17 3.06-1.17 4.24 0 1.17 1.17 1.17 3.06 0 4.24l-4.5 4.5c-.39.39-1.04.39-1.43 0l-.79-.8-4.93 4.94c-.39.39-1.04.39-1.43 0l-1.41-1.41c-.39-.39-.39-1.04 0-1.43l7.05-7.04z"/></svg>`;
+
+        const descHtml = alianza.descripcion
+          ? `<p class="alianza-description">${esc(alianza.descripcion)}</p>`
+          : "";
+
+        const benefitHtml = alianza.beneficio
+          ? `
+            <div class="alianza-benefit">
+              <span class="benefit-badge">Beneficio exclusivo</span>
+              <h4 class="benefit-title">${esc(alianza.beneficio)}</h4>
+              ${alianza.beneficio_texto ? `<p class="benefit-text">${esc(alianza.beneficio_texto)}</p>` : ""}
+            </div>
+          `
+          : "";
+
+        const contactHtml = hasContact
+          ? `
+            <div class="alianza-contact">
+              ${
+                alianza.telefono
+                  ? `
+                    <a href="tel:${esc(telClean)}" class="contact-item" title="Llamar">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                      </svg>
+                      <span>${esc(alianza.telefono)}</span>
+                    </a>
+                  `
+                  : ""
+              }
+
+              ${
+                alianza.whatsapp
+                  ? `
+                    <a href="https://wa.me/${esc(waClean)}" target="_blank" rel="noopener" class="contact-item whatsapp" title="WhatsApp">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/>
+                      </svg>
+                      <span>WhatsApp</span>
+                    </a>
+                  `
+                  : ""
+              }
+
+              ${
+                alianza.instagram
+                  ? `
+                    <a href="https://instagram.com/${esc(igClean)}" target="_blank" rel="noopener" class="contact-item instagram" title="Instagram">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z"/>
+                      </svg>
+                      <span>@${esc(igClean)}</span>
+                    </a>
+                  `
+                  : ""
+              }
+            </div>
+          `
+          : "";
+
+        const ctaHtml = alianza.link
+          ? `
+            <div class="alianza-cta">
+              <a href="${esc(alianza.link)}" target="_blank" rel="noopener">
+                Ver más información
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </a>
+            </div>
+          `
+          : "";
+
+        const featuredHtml = hasImage
+          ? `
+            <div class="alianza-featured-image">
+              <img src="${esc(alianza.imagen)}" alt="${esc(alianza.beneficio || alianza.nombre || "Imagen")}" />
+            </div>
+          `
+          : "";
+
+        return `
+          <div class="alianza-card ${hasImage ? "has-featured-image" : ""}">
+            <div class="alianza-card-inner">
+
+              <div class="alianza-content">
+                <div class="alianza-card-header">
+                  <div class="alianza-logo ${!alianza.logo ? "no-image" : ""}">
+                    ${logoHtml}
+                  </div>
+                  <h3 class="alianza-name">${esc(alianza.nombre || "")}</h3>
+                </div>
+
+                ${descHtml}
+                ${benefitHtml}
+                ${contactHtml}
+                ${ctaHtml}
+              </div>
+
+              ${featuredHtml}
+
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      root.innerHTML = `<div class="alianzas-grid">${html}</div>`;
     }
 
-    /* Kicker con línea */
-    .alianzas-kicker {
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: #1A1A1A;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 500;
+    async function loadAlianzas() {
+      try {
+        const fetchUrl = `${apiUrl}/wp-json/valencia/v1/alianzas`;
+        const res = await fetch(fetchUrl, { credentials: "omit" });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+        const data = await res.json();
+        renderAlianzas(data);
+      } catch (e) {
+        console.error("Error fetching alianzas:", e);
+        renderNoAlianzas("No pudimos cargar las alianzas en este momento.");
+      }
     }
 
-    .alianzas-kicker .line-before {
-        width: 40px;
-        height: 1px;
-        background: #1A1A1A;
-        display: block;
-    }
+    loadAlianzas();
+  </script>
 
-    /* Título Principal */
-    .alianzas-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 2.8rem;
-        line-height: 1.1;
-        color: #C7B593;
-        margin-bottom: 20px;
-    }
-
-    .alianzas-title .fw-light {
-        font-weight: 300;
-        color: #C7B593;
-    }
-
-    .alianzas-title .fw-bold {
-        font-weight: 700;
-    }
-
-    .alianzas-title .highlight-font {
-        font-style: italic;
-        color: #C7B593;
-    }
-
-    /* Subtítulo */
-    .alianzas-subtitle {
-        font-size: 1.05rem;
-        color: #666;
-        line-height: 1.6;
-        max-width: 600px;
-    }
-
-    /* Grid de Alianzas */
-    .alianzas-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 25px;
-    }
-
-    /* Card Individual */
-    .alianza-card {
-        background: #fff;
-        border: 2px dashed #d0d0d0;
-        border-radius: 16px;
-        padding: 30px 35px;
-        transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-        position: relative;
-        overflow: hidden;
-        animation: fadeInUp 0.6s ease forwards;
-    }
-
-    .alianza-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 0;
-        background: linear-gradient(180deg, #C7B593, #a59469);
-        transition: height 0.4s ease;
-        border-radius: 4px 0 0 4px;
-    }
-
-    .alianza-card:hover {
-        border-color: #C7B593;
-        box-shadow: 0 15px 40px rgba(199, 181, 147, 0.15);
-        transform: translateY(-3px);
-    }
-
-    .alianza-card:hover::before {
-        height: 100%;
-    }
-
-    .alianza-card:nth-child(1) { animation-delay: 0.1s; }
-    .alianza-card:nth-child(2) { animation-delay: 0.2s; }
-    .alianza-card:nth-child(3) { animation-delay: 0.3s; }
-    .alianza-card:nth-child(4) { animation-delay: 0.4s; }
-    .alianza-card:nth-child(5) { animation-delay: 0.5s; }
-
-    /* Header de Card (Logo + Nombre) */
-    .alianza-card-header {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 15px;
-    }
-
-    .alianza-logo {
-        width: 60px;
-        height: 60px;
-        min-width: 60px;
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f5f5f5;
-        border: 1px solid #eee;
-    }
-
-    .alianza-logo img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-    }
-
-    .alianza-logo.no-image {
-        background: linear-gradient(135deg, #C7B593, #a59469);
-        color: #fff;
-    }
-
-    .alianza-name {
-        font-family: 'Lato', sans-serif;
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 0;
-    }
-
-    /* Descripción */
-    .alianza-description {
-        font-size: 0.95rem;
-        color: #666;
-        line-height: 1.6;
-        margin-bottom: 20px;
-    }
-
-    /* Oferta/Beneficio */
-    .alianza-benefit {
-        background: linear-gradient(135deg, #fdfbf7 0%, #f8f5ef 100%);
-        border: 1px solid #e8e0d0;
-        border-radius: 12px;
-        padding: 20px;
-        position: relative;
-        margin-bottom: 20px;
-    }
-
-    .benefit-badge {
-        position: absolute;
-        top: -10px;
-        left: 20px;
-        background: linear-gradient(135deg, #C7B593, #a59469);
-        color: white;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 4px 12px;
-        border-radius: 20px;
-        box-shadow: 0 3px 10px rgba(199, 181, 147, 0.3);
-    }
-
-    .benefit-title {
-        font-family: 'Lato', sans-serif;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 8px 0 8px;
-    }
-
-    .benefit-text {
-        font-size: 0.85rem;
-        color: #888;
-        margin: 0;
-        line-height: 1.5;
-    }
-
-    /* Contacto */
-    .alianza-contact {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid #f0f0f0;
-    }
-
-    .alianza-contact .contact-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        background: #f8f8f8;
-        border-radius: 25px;
-        font-size: 0.85rem;
-        color: #555;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        border: 1px solid #eee;
-    }
-
-    .alianza-contact .contact-item:hover {
-        background: #1a1a1a;
-        color: #fff;
-        border-color: #1a1a1a;
-        transform: translateY(-2px);
-    }
-
-    .alianza-contact .contact-item.whatsapp:hover {
-        background: #25D366;
-        border-color: #25D366;
-    }
-
-    .alianza-contact .contact-item.instagram:hover {
-        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-        border-color: #dc2743;
-    }
-
-    /* CTA Link */
-    .alianza-cta {
-        margin-top: 20px;
-    }
-
-    .alianza-cta a {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #C7B593;
-        text-decoration: none;
-        transition: all 0.3s ease;
-    }
-
-    .alianza-cta a:hover {
-        color: #1a1a1a;
-        gap: 12px;
-    }
-
-    /* Card con Imagen Destacada */
-    .alianza-card.has-featured-image .alianza-card-inner {
-        display: grid;
-        grid-template-columns: 1fr 220px;
-        gap: 25px;
-        align-items: center;
-    }
-
-    .alianza-card.has-featured-image .alianza-featured-image {
-        width: 100%;
-        height: 223px;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    .alianza-card.has-featured-image .alianza-featured-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.4s ease;
-    }
-
-    .alianza-card.has-featured-image:hover .alianza-featured-image img {
-        transform: scale(1.05);
-    }
-
-    /* Sin Alianzas */
-    .no-alianzas {
-        text-align: center;
-        padding: 60px 20px;
-        background: #fff;
-        border-radius: 16px;
-        border: 2px dashed #e5e5e5;
-        color: #999;
-    }
-
-    .no-alianzas svg {
-        margin-bottom: 15px;
-        color: #ddd;
-    }
-
-    .no-alianzas p {
-        font-size: 1rem;
-    }
-
-    /* Animación de entrada */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .valencia-alianzas-section {
-            padding: 60px 0 80px;
-        }
-
-        .alianzas-title {
-            font-size: 1.6rem;
-        }
-
-        .alianza-card {
-            padding: 25px 20px;
-        }
-
-        .alianza-card.has-featured-image .alianza-card-inner {
-            grid-template-columns: 1fr;
-        }
-
-        .alianza-card.has-featured-image .alianza-featured-image {
-            height: 160px;
-            order: -1;
-        }
-
-        .alianza-logo {
-            width: 50px;
-            height: 50px;
-            min-width: 50px;
-        }
-
-        .alianza-name {
-            font-size: 1.1rem;
-        }
-    }
+<style is:global>
+  @import "../styles/alianzas.css";
 </style>
+</Layout>
