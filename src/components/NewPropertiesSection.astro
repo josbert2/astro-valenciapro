@@ -85,7 +85,7 @@ const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
         if (!container) return;
 
         try {
-            const response = await fetch(`${apiUrl}/graphql`, {
+            const response = await fetch(`https://cms.valenciapro.cl/graphql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -147,7 +147,7 @@ const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
                 const propertyUrl = slug ? `/propiedad/${slug}` : '#';
                 
                 // Get status info
-                const statusSlug = (property.propertyStatus || 'disponible', 'arrendada').toLowerCase();
+                const statusSlug = (property.propertyStatus || 'disponible').toLowerCase();
                 const statusName = statusSlug.charAt(0).toUpperCase() + statusSlug.slice(1);
                 
                 // Status colors
