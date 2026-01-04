@@ -5,6 +5,7 @@ import '../../styles/single-property.css';
 
 const { slug } = Astro.params;
 const apiUrl = 'https://cms.valenciapro.cl';
+const contactApiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
 const mapboxToken = 'pk.eyJ1Ijoiam9zYmVydCIsImEiOiJjbWlzYmR0b3MxN3RnM2hvYnFuZzYzeHhrIn0.IcQTlfA5pb6QtSL7TsUX5A';
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -119,6 +120,18 @@ if (!property) {
 let prevProperty: any = null;
 let nextProperty: any = null;
 
+// Fetch UF value from mindicador.cl API
+let UF_VALUE_CLP = 38000; // Fallback value
+try {
+    const ufResponse = await fetch('https://mindicador.cl/api/uf');
+    if (ufResponse.ok) {
+        const ufData = await ufResponse.json();
+        UF_VALUE_CLP = ufData.serie?.[0]?.valor || 38000;
+    }
+} catch (e) {
+    console.error('Error fetching UF value:', e);
+}
+
 // Helper functions
 function formatPrice(price: string, unit: string) {
     if (!price) return 'Consultar';
@@ -126,6 +139,12 @@ function formatPrice(price: string, unit: string) {
         return `UF ${parseFloat(price).toLocaleString('es-CL')}`;
     }
     return `$ ${parseInt(price).toLocaleString('es-CL')}`;
+}
+
+function getUFtoCLP(priceUF: string): string {
+    if (!priceUF) return '';
+    const clpValue = parseFloat(priceUF) * UF_VALUE_CLP;
+    return `≈ $ ${Math.round(clpValue).toLocaleString('es-CL')}`;
 }
 
 // Current page URL for sharing
@@ -575,8 +594,13 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
                     
                     <div class={`price-card ${!isAvailable ? 'price-card-disabled' : ''}`} id="priceCard">
                         <div class="price-accent"></div>
-                        <div class="price-value">
+                        <div class="price-value" style="display:flex;flex-direction:column;    align-items: center;">
                             <span class="main-price">{formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit)}</span>
+                            <span class="sub-price" style="color: #888;">
+                                {property.valenciaPriceUnit === 'UF' 
+                                    ? getUFtoCLP(property.realEstatePropertyPriceShort)
+                                    : property.realEstatePropertyPrice}
+                            </span>
                         </div>
                         <div class="price-cta-wrapper">
                             {isAvailable ? (
@@ -763,13 +787,24 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
                     <div class="contact-card">
                         <h3>¿Te interesa esta propiedad?</h3>
                         <p>Contáctanos para más información o agendar una visita.</p>
-                        <form class="contact-form">
-                            <input type="text" placeholder="Nombre" required />
-                            <input type="email" placeholder="Email" required />
-                            <input type="tel" placeholder="Teléfono" />
-                            <textarea placeholder="Mensaje" rows="4"></textarea>
-                            <button type="submit">Enviar consulta</button>
+                        <form class="contact-form" id="sidebarContactForm">
+                            <input type="hidden" name="property_id" value={property.databaseId} />
+                            <input type="hidden" name="property_title" value={property.title} />
+                            <input type="text" name="name" placeholder="Nombre" required />
+                            <input type="email" name="email" placeholder="Email" required />
+                            <input type="tel" name="phone" placeholder="Teléfono" />
+                            <textarea name="message" placeholder="Mensaje" rows="4"></textarea>
+                            <div class="cf-turnstile" data-sitekey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'} data-theme="light"></div>
+                            <button type="submit" id="sidebarSubmitBtn">
+                                <span class="btn-text">Enviar consulta</span>
+                                <span class="btn-loading" style="display:none;">Enviando...</span>
+                            </button>
                         </form>
+                        <div id="sidebarFormSuccess" style="display:none;" class="form-success">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                            <h4>¡Consulta enviada!</h4>
+                            <p>Nos pondremos en contacto contigo pronto.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -906,7 +941,7 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
 
 <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
 
-<script define:vars={{ lat, lng, hasLocation, mapboxToken, propertyTitle: property.title, apiUrl, turnstileSiteKey }}>
+<script define:vars={{ lat, lng, hasLocation, mapboxToken, propertyTitle: property.title, apiUrl, contactApiUrl, turnstileSiteKey }}>
     // Sticky bar logic
     const priceCard = document.getElementById('priceCard');
     const stickyBar = document.getElementById('stickyBar');
@@ -1117,7 +1152,7 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
     }
 </script>
 
-<script define:vars={{ allImages: [property.featuredImage?.node?.sourceUrl].filter(Boolean) }}>
+<script define:vars={{ allImages: [property.featuredImage?.node?.sourceUrl].filter(Boolean), propertyTitle: property.title }}>
     // Lightbox functionality
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightboxImage');
@@ -1309,7 +1344,7 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
             property_title: propertyTitle
         };
         
-        fetch(`${apiUrl}/wp-json/valencia/v1/send-contact`, {
+        fetch(`https://cms.valenciapro.cl/wp-json/valencia/v1/send-contact`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -1332,4 +1367,66 @@ const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
             b.disabled = false;
         });
     };
+    
+    // Handler para el formulario de la sidebar
+    const sidebarForm = document.getElementById('sidebarContactForm');
+    if (sidebarForm) {
+        sidebarForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('sidebarSubmitBtn');
+            const btnText = btn.querySelector('.btn-text');
+            const btnLoading = btn.querySelector('.btn-loading');
+            
+            // Get turnstile token
+            const turnstileInput = sidebarForm.querySelector('input[name="cf-turnstile-response"]');
+            const turnstileToken = turnstileInput ? turnstileInput.value : '';
+            
+            if (!turnstileToken) {
+                alert('Por favor completa la verificación de seguridad');
+                return;
+            }
+            
+            // Show loading
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            btn.disabled = true;
+            
+            const fd = new FormData(sidebarForm);
+            const data = {
+                contact_name: fd.get('name'),
+                contact_email: fd.get('email'),
+                contact_phone: fd.get('phone') || '',
+                contact_interest: 'propiedad',
+                contact_message: `Consulta sobre: ${fd.get('property_title')}\n\n${fd.get('message') || 'El usuario está interesado en esta propiedad.'}`,
+                'cf-turnstile-response': turnstileToken
+            };
+            
+            fetch(`https://cms.valenciapro.cl/wp-json/valencia/v1/send-contact`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    sidebarForm.style.display = 'none';
+                    document.getElementById('sidebarFormSuccess').style.display = 'block';
+                } else {
+                    alert('Error: ' + (res.message || 'Error al enviar'));
+                    btnText.style.display = 'inline';
+                    btnLoading.style.display = 'none';
+                    btn.disabled = false;
+                    if (window.turnstile) window.turnstile.reset();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error de conexión');
+                btnText.style.display = 'inline';
+                btnLoading.style.display = 'none';
+                btn.disabled = false;
+            });
+        });
+    }
 </script>
