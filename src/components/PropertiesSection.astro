@@ -129,7 +129,7 @@ const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
             container.innerHTML = properties.map(p => {
                 const type = (p.realEstatePropertyType || 'departamento').toLowerCase();
                 const operation = p.realEstatePropertyOperation || 'Arriendo';
-                const opColor = operation.toLowerCase() === 'venta' ? 'bg-[#c07b59]' : 'bg-[#BFB37B]';
+                const opColor = operation.toLowerCase() === 'venta' ? 'bg-[#2f2f2f]' : 'bg-[#BFB37B]';
                 const price = p.valenciaPriceUnit ? `${p.valenciaPriceUnit} ${formatNum(p.realEstatePropertyPriceShort)}` : `$ ${formatNum(p.realEstatePropertyPriceShort)}`;
                 const img = p.featuredImage?.node?.sourceUrl || '/hero-1.jpg';
                 // Extract slug from uri and use /propiedad/ path
