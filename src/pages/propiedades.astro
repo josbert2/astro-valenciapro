@@ -202,11 +202,10 @@ const bedrooms = url.searchParams.get('bedrooms') || '';
             
             let allProperties = result.data?.properties?.nodes || [];
             
-            // Filter hidden statuses
-            const hiddenStatuses = ['vendida', 'sold', 'rented', 'mantenimiento', 'maintenance'];
+            // Filter: ONLY show disponible or arrendada
             let properties = allProperties.filter(p => {
                 const st = (p.propertyStatus || 'disponible').toLowerCase();
-                return !hiddenStatuses.includes(st);
+                return st === 'disponible' || st === 'arrendada';
             });
             
             // Extract unique property types
@@ -293,12 +292,45 @@ const bedrooms = url.searchParams.get('bedrooms') || '';
             } else {
                 grid.innerHTML = properties.map(property => {
                     const typeSlug = property.realEstatePropertyType?.toLowerCase() || '';
-                    const operationSlug = property.realEstatePropertyOperation?.toLowerCase() || '';
-                    const statusSlug = (property.propertyStatus || 'disponible').toLowerCase();
-                    const statusColor = statusColors[statusSlug] || '#bfb37b';
-                    const operationColor = operationColors[operationSlug] || '#bfb37b';
+                    const operationSlug = property.realEstatePropertyOperation?.toLowerCase() || ''; // Used for class filtering
                     const slug = property.slug || property.uri?.split('/').filter(Boolean).pop() || '';
                     
+                    // Status Badge Logic
+                    const statusSlug = (property.propertyStatus || 'disponible').toLowerCase();
+                    const statusName = statusSlug.charAt(0).toUpperCase() + statusSlug.slice(1);
+                    const statusConfig = {
+                        'disponible': { bg: '#FFFFFF', text: '#BFB37B', dot: '#BFB37B' }, // White/Gold
+                        'arrendada': { bg: '#E7E5E4', text: '#57534E', dot: '#A8A29E' }  // Sand/Taupe
+                    };
+                    const sColor = statusConfig[statusSlug] || statusConfig['disponible'];
+
+                    const statusBadgeEntry = `
+                        <span class="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm" style="background: ${sColor.bg}; color: ${sColor.text}">
+                            <span class="w-2 h-2 rounded-full" style="background: ${sColor.dot}"></span>
+                            ${statusName}
+                        </span>
+                    `;
+
+                    // Operation Badge Logic
+                    const opSlug = (property.realEstatePropertyOperation || 'Arriendo').toLowerCase();
+                    const opName = opSlug.charAt(0).toUpperCase() + opSlug.slice(1);
+                    
+                    const opConfig = {
+                        'arriendo': { bg: '#BFB37B', text: '#FFFFFF', dot: '#FFFFFF' }, // Gold/White
+                        'venta':    { bg: '#6B9E7B', text: '#FFFFFF', dot: '#D1E7DD' }  // Soft Sage Green
+                    };
+                    const oColor = opConfig[opSlug] || opConfig['arriendo'];
+
+                    // Hide operation badge if property is already rented (arrendada)
+                    const operationBadgeEntry = statusSlug === 'arrendada' ? '' : `
+                        <div class="absolute top-4 right-4 z-10">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm" style="background: ${oColor.bg}; color: ${oColor.text}">
+                                 <span class="w-2 h-2 rounded-full" style="background: ${oColor.dot}"></span>
+                                ${opName}
+                            </span>
+                        </div>
+                    `;
+
                     let featuresHtml = '';
                     if (property.realEstatePropertyBedrooms) {
                         featuresHtml += `<span class="feature" title="Habitaciones">
@@ -333,7 +365,22 @@ const bedrooms = url.searchParams.get('bedrooms') || '';
                         </span>`;
                     }
                     
-                    return `<div class="property-card type-${typeSlug} status-${operationSlug}"><div class="property-image">${property.featuredImage?.node?.sourceUrl ? `<img src="${property.featuredImage.node.sourceUrl}" alt="${property.featuredImage.node.altText || property.title}" loading="lazy" />` : '<div class="no-image">Sin imagen</div>'}<div class="property-badges"><div class="badges-left">${statusSlug ? `<span class="badge" style="background: ${statusColor}"><span class="badge-dot"></span>${statusSlug.charAt(0).toUpperCase() + statusSlug.slice(1)}</span>` : ''}</div><div class="badges-right">${operationSlug ? `<span class="badge" style="background: ${operationColor}">${operationSlug.charAt(0).toUpperCase() + operationSlug.slice(1)}</span>` : ''}</div></div></div><div class="property-content"><h3 class="property-title"><a href="/propiedad/${slug}">${property.title}</a></h3>${property.realEstatePropertyAddress ? `<p class="property-location"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>${property.realEstatePropertyAddress}</p>` : ''}<div class="property-features">${featuresHtml}</div><div class="property-footer"><span class="property-price">${formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit)}</span><a href="/propiedad/${slug}" class="btn-details">Detalles<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div></div></div>`;
+                    return `<div class="property-card type-${typeSlug} status-${operationSlug}">
+                            <div class="property-image relative">
+                                ${property.featuredImage?.node?.sourceUrl ? `<img src="${property.featuredImage.node.sourceUrl}" alt="${property.featuredImage.node.altText || property.title}" loading="lazy" />` : '<div class="no-image">Sin imagen</div>'}
+                                ${statusBadgeEntry}
+                                ${operationBadgeEntry}
+                            </div>
+                            <div class="property-content">
+                                <h3 class="property-title"><a href="/propiedad/${slug}">${property.title}</a></h3>
+                                ${property.realEstatePropertyAddress ? `<p class="property-location"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>${property.realEstatePropertyAddress}</p>` : ''}
+                                <div class="property-features">${featuresHtml}</div>
+                                <div class="property-footer">
+                                    <span class="property-price">${formatPrice(property.realEstatePropertyPriceShort, property.valenciaPriceUnit)}</span>
+                                    <a href="/propiedad/${slug}" class="btn-details">Detalles<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+                                </div>
+                            </div>
+                        </div>`;
                 }).join('');
             }
             

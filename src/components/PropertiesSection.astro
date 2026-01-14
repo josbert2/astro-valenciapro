@@ -104,7 +104,7 @@ const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
             
             // Filter: ONLY show disponible (hide arrendada, reservada, vendida, en-mantenimiento)
             const filteredProperties = allProperties.filter(p => {
-                const status = (p.propertyStatus || 'disponible', 'arrendada').toLowerCase();
+                const status = (p.propertyStatus || 'disponible').toLowerCase();
                 return status === 'disponible' || status === 'arrendada';
             });
             
@@ -128,29 +128,47 @@ const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
 
             container.innerHTML = properties.map(p => {
                 const type = (p.realEstatePropertyType || 'departamento').toLowerCase();
-                const operation = p.realEstatePropertyOperation || 'Arriendo';
-                const opColor = operation.toLowerCase() === 'venta' ? 'bg-[#2f2f2f]' : 'bg-[#BFB37B]';
                 const price = p.valenciaPriceUnit ? `${p.valenciaPriceUnit} ${formatNum(p.realEstatePropertyPriceShort)}` : `$ ${formatNum(p.realEstatePropertyPriceShort)}`;
                 const img = p.featuredImage?.node?.sourceUrl || '/hero-1.jpg';
                 // Extract slug from uri and use /propiedad/ path
                 const slug = p.uri ? p.uri.replace(/^\/propiedades\//, '').replace(/\/$/, '') : '';
                 const propertyUrl = slug ? `/propiedad/${slug}` : '#';
                 
-                // Status Logic
+                // Status Logic (Badge Top Left)
                 const statusSlug = (p.propertyStatus || 'disponible').toLowerCase();
                 const statusName = statusSlug.charAt(0).toUpperCase() + statusSlug.slice(1);
-                const statusColors = {
-                    'disponible': { bg: '#bfb37b', dot: '#9a8f5c' },
-                    'arrendada': { bg: '#c07b59', dot: '#9a8f5c' }
-                };
-                const colors = statusColors[statusSlug] || statusColors['disponible'] || statusColors['arrendada'];
                 
-                // Status Badge HTML to insert
+                const statusConfig = {
+                    'disponible': { bg: '#FFFFFF', text: '#BFB37B', dot: '#BFB37B' }, // White/Gold (Elegant)
+                    'arrendada': { bg: '#E7E5E4', text: '#57534E', dot: '#A8A29E' }  // Sand/Taupe (Warm Neutral)
+                };
+                const sColor = statusConfig[statusSlug] || statusConfig['disponible'];
+                
                 const statusBadge = `
-                    <span class="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold text-white uppercase tracking-wider shadow-sm" style="background: ${colors.bg}">
-                        <span class="w-2 h-2 rounded-full animate-pulse" style="background: ${colors.dot}"></span>
+                    <span class="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm" style="background: ${sColor.bg}; color: ${sColor.text}">
+                        <span class="w-2 h-2 rounded-full" style="background: ${sColor.dot}"></span>
                         ${statusName}
                     </span>
+                `;
+
+                // Operation Logic (Badge Top Right)
+                const opSlug = (p.realEstatePropertyOperation || 'Arriendo').toLowerCase();
+                const opName = opSlug.charAt(0).toUpperCase() + opSlug.slice(1);
+                
+                const opConfig = {
+                    'arriendo': { bg: '#BFB37B', text: '#FFFFFF', dot: '#FFFFFF' }, // Gold/White
+                    'venta':    { bg: '#6B9E7B', text: '#FFFFFF', dot: '#D1E7DD' }  // Soft Sage Green (Light Premium)
+                };
+                const oColor = opConfig[opSlug] || opConfig['arriendo'];
+
+                // Hide operation badge if property is already rented (arrendada) to avoid redundancy/contradiction
+                const operationBadge = statusSlug === 'arrendada' ? '' : `
+                    <div class="absolute top-4 right-4 z-10">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm" style="background: ${oColor.bg}; color: ${oColor.text}">
+                             <span class="w-2 h-2 rounded-full" style="background: ${oColor.dot}"></span>
+                            ${opName}
+                        </span>
+                    </div>
                 `;
                 
                 let features = '';
@@ -185,10 +203,8 @@ const apiUrl = import.meta.env.WP_DOMAIN || 'http://localhost:10016';
                         <div class="relative h-[500px] overflow-hidden">
                             <img src="${img}" alt="${p.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy"/>
                             ${statusBadge}
+                            ${operationBadge}
                             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                            <div class="absolute top-4 right-4">
-                                <span class="${opColor} text-white px-4 py-1.5 rounded-md text-xs font-semibold capitalize">${operation}</span>
-                            </div>
                         </div>
                         <div class="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
                             <h3 class="text-xl font-semibold mb-2 line-clamp-1">
